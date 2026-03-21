@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>AI Interview Assistant - Chrome Extension</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap');
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:'Noto Sans TC',sans-serif;background:#0a0a0a;color:#fff;overflow:hidden;height:100vh}
+        .slide-container{width:100vw;height:100vh;position:relative}
+        .slide{position:absolute;top:0;left:0;width:100%;height:100%;display:none;padding:35px 50px;background:linear-gradient(145deg,#0d1117,#161b22);opacity:0;transition:opacity 0.6s}
+        .slide.active{display:flex;flex-direction:column;opacity:1}
+        .progress-bar{position:fixed;top:0;left:0;height:4px;background:linear-gradient(90deg,#667eea,#764ba2);z-index:1000}
+        .slide-number{position:absolute;bottom:15px;right:25px;font-size:11px;color:rgba(255,255,255,0.2)}
+        .slide-title{justify-content:center;align-items:center;text-align:center;background:radial-gradient(ellipse at center,#1a1f2e,#0d1117)}
+        .slide-title h1{font-size:3.2em;font-weight:900;margin-bottom:15px;background:linear-gradient(135deg,#667eea,#764ba2);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+        .slide-title .subtitle{font-size:1.2em;color:#8b949e;margin-bottom:25px}
+        .product-tags{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:20px}
+        .product-tag{background:rgba(102,126,234,0.15);border:1px solid rgba(102,126,234,0.3);padding:8px 16px;border-radius:20px;font-size:12px}
+        .section-header{font-size:10px;color:#ffa657;text-transform:uppercase;letter-spacing:3px;margin-bottom:8px}
+        .slide h2{font-size:1.7em;font-weight:700;margin-bottom:18px}
+        .content-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;flex:1}
+        .content-box{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:14px;padding:16px}
+        .content-box h3{font-size:1em;color:#667eea;margin-bottom:10px;font-weight:600}
+        .content-box ul{list-style:none;padding:0}
+        .content-box li{padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04);color:#c9d1d9;font-size:13px;padding-left:15px;position:relative}
+        .content-box li:last-child{border-bottom:none}
+        .content-box li::before{content:'';position:absolute;left:0;top:10px;width:4px;height:4px;background:#667eea;border-radius:50%}
+        .highlight-box{background:rgba(102,126,234,0.08);border:1px solid rgba(102,126,234,0.2);padding:14px;border-radius:12px;margin:12px 0}
+        .highlight-box strong{color:#667eea}
+        .stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:14px 0}
+        .stat-card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:14px;padding:16px;text-align:center}
+        .stat-number{font-size:2em;font-weight:900;background:linear-gradient(135deg,#667eea,#764ba2);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+        .stat-label{color:#8b949e;margin-top:6px;font-size:11px}
+        .feature-list{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin:12px 0}
+        .feature-item{background:rgba(255,255,255,0.03);border-radius:10px;padding:14px;display:flex;align-items:center;gap:10px}
+        .feature-icon{font-size:1.5em}
+        .feature-text{font-size:13px;color:#ddd}
+        .conclusion{text-align:center;justify-content:center;align-items:center}
+        .conclusion blockquote{font-size:1.5em;color:#fff;max-width:700px;line-height:1.6;font-weight:300}
+        .conclusion cite{display:block;margin-top:25px;color:#8b949e}
+        .nav{position:fixed;bottom:15px;left:50%;transform:translateX(-50%);display:flex;gap:8px;z-index:1000}
+        .nav button{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);color:#fff;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:11px;font-family:inherit;transition:0.3s}
+        .nav button:hover{background:rgba(102,126,234,0.2)}
+        .code-block{background:#1e1e3f;border-radius:10px;padding:15px;font-family:monospace;font-size:12px;color:#a5d6ff;margin:10px 0;overflow-x:auto}
+        .tech-stack{display:flex;gap:15px;flex-wrap:wrap;justify-content:center;margin:15px 0}
+        .tech-item{background:rgba(255,255,255,0.05);padding:10px 18px;border-radius:25px;font-size:13px}
+    </style>
+</head>
+<body>
+    <div class="progress-bar" id="progress" style="width:8%"></div>
+    <div class="slide-container">
+        <!-- Slide 1 -->
+        <div class="slide slide-title active">
+            <h1>AI Interview Assistant</h1>
+            <p class="subtitle">Chrome 擴充功能 - 面試即時答案助手</p>
+            <p style="color:#6e7681;font-size:1em;margin-bottom:20px;">在 Zoom / Teams / Meet 等通訊軟體上，即時分析面試官問題並提供專業答案與參考資料</p>
+            <div class="product-tags">
+                <span class="product-tag">🎤 即時語音識別</span>
+                <span class="product-tag">🤖 AI 答案分析</span>
+                <span class="product-tag">📚 參考資料</span>
+                <span class="product-tag">🔒 隱私優先</span>
+            </div>
+            <div class="slide-number">01 / 12</div>
+        </div>
+        
+        <!-- Slide 2: Problem -->
+        <div class="slide">
+            <span class="section-header">問題與痛點</span>
+            <h2>面試時的挑戰</h2>
+            <div class="content-grid">
+                <div class="content-box"><h3>面試者常見問題</h3><ul><li>緊張導致無法即時組織答案</li><li>技術問題一時想不起來</li><li>不知道如何回答行為問題</li><li>來不及查詢專業術語</li></ul></div>
+                <div class="content-box"><h3>現有解決方案不足</h3><ul><li>需要另外開啟搜尋引擎</li><li>搜尋結果不夠精準</li><li>缺乏專業的技術答案</li><li>無法即時提供建議</li></ul></div>
+            </div>
+            <div class="highlight-box"><strong>市場缺口：</strong>沒有一款專門針對「面試場景」設計的 AI 助手，可以即時聆聽、理解和提供專業建議</div>
+            <div class="slide-number">02 / 12</div>
+        </div>
+        
+        <!-- Slide 3: Solution -->
+        <div class="slide">
+            <span class="section-header">解決方案</span>
+            <h2>AI Interview Assistant</h2>
+            <div class="content-grid">
+                <div class="content-box"><h3>核心功能</h3><ul><li><strong>🎤 即時語音識別</strong> - 自動聆聽面試官問題</li><li><strong>🧠 AI 智能分析</strong> - 理解問題並生成專業答案</li><li><strong>📚 參考資料</strong> - 提供相關技術文檔連結</li><li><strong>💬 螢幕浮層顯示</strong> - 不遮擋會議畫面</li></ul></div>
+                <div class="content-box"><h3>支援平台</h3><ul><li>Zoom</li><li>Microsoft Teams</li><li>Google Meet</li><li>Webex</li><li>Slack 等</li></ul></div>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-card"><div class="stat-number">< 1秒</div><div class="stat-label">反應時間</div></div>
+                <div class="stat-card"><div class="stat-number">95%</div><div class="stat-label">語音識別準確率</div></div>
+                <div class="stat-card"><div class="stat-number">50+</div><div class="stat-label">AI 模型支援</div></div>
+            </div>
+            <div class="slide-number">03 / 12</div>
+        </div>
+        
+        <!-- Slide 4: How it works -->
+        <div class="slide">
+            <span class="section-header">運作原理</span>
+            <h2>工作流程</h2>
+            <div class="feature-list">
+                <div class="feature-item"><div class="feature-icon">🎤</div><div class="feature-text">1. 取得麥克風權限，開始聆聽</div></div>
+                <div class="feature-item"><div class="feature-icon">🗣️</div><div class="feature-text">2. 語音識別 (Web Speech API)</div></div>
+                <div class="feature-item"><div class="feature-icon">🤖</div><div class="feature-text">3. 傳送問題到 AI 模型</div></div>
+                <div class="feature-item"><div class="feature-icon">📝</div><div class="feature-text">4. AI 生成專業答案建議</div></div>
+                <div class="feature-item"><div class="feature-icon">🔗</div><div class="feature-text">5. 搜尋相關參考資料</div></div>
+                <div class="feature-item"><div class="feature-icon">💬</div><div class="feature-text">6. 螢幕浮層顯示結果</div></div>
+            </div>
+            <div class="highlight-box"><strong>技術亮點：</strong>使用瀏覽器原生 API，無需額外安裝軟體，確保隱私與安全性</div>
+            <div class="slide-number">04 / 12</div>
+        </div>
+        
+        <!-- Slide 5: UI -->
+        <div class="slide">
+            <span class="section-header">使用者介面</span>
+            <h2>直觀易用的介面設計</h2>
+            <div class="content-grid">
+                <div class="content-box"><h3>彈出視窗 (Popup)</h3><ul><li>模型選擇下拉選單</li><li>開始/停止聆聽按鈕</li><li>即時狀態顯示</li><li>問題與答案歷史</li><li>快捷鍵提示</li></ul></div>
+                <div class="content-box"><h3>螢幕浮層 (Overlay)</h3><ul><li>非侵入式設計</li><li>可拖曳位置</li><li>自動隱藏計時</li><li>一鍵關閉</li><li>參考資料連結</li></ul></div>
+            </div>
+            <div class="highlight-box"><strong>設計原則：</strong>不遮擋會議畫面、不影響面試官體驗，讓使用者能優雅地獲取答案建議</div>
+            <div class="slide-number">05 / 12</div>
+        </div>
+        
+        <!-- Slide 6: Tech Stack -->
+        <div class="slide">
+            <span class="section-header">技術架構</span>
+            <h2>使用的技術</h2>
+            <div class="tech-stack">
+                <div class="tech-item">🎯 Chrome Extension Manifest V3</div>
+                <div class="tech-item">🎤 Web Speech API</div>
+                <div class="tech-item">🔊 MediaRecorder API</div>
+                <div class="tech-item">🤖 OpenAI API</div>
+                <div class="tech-item">🔮 Gemini API</div>
+                <div class="tech-item">🧠 Claude API</div>
+                <div class="tech-item">💾 Chrome Storage</div>
+                <div class="tech-item">⌨️ Keyboard Shortcuts</div>
+            </div>
+            <div class="content-grid" style="margin-top:15px">
+                <div class="content-box"><h3>前端技術</h3><ul><li>HTML5 / CSS3</li><li>JavaScript (ES6+)</li><li>Chrome APIs</li></ul></div>
+                <div class="content-box"><h3>後端整合</h3><ul><li>OpenAI GPT-4o</li><li>Google Gemini</li><li>Anthropic Claude</li><li>MiniMax M3</li></ul></div>
+            </div>
+            <div class="slide-number">06 / 12</div>
+        </div>
+        
+        <!-- Slide 7: Privacy -->
+        <div class="slide">
+            <span class="section-header">隱私與安全</span>
+            <h2>隱私優先設計</h2>
+            <div class="stats-grid">
+                <div class="stat-card"><div class="stat-number">🔒</div><div class="stat-label">本地處理</div></div>
+                <div class="stat-card"><div class="stat-number">�_local</div><div class="stat-label">不上傳音訊</div></div>
+                <div class="stat-card"><div class="stat-number">$</div><div class="stat-label">自備 API Key</div></div>
+            </div>
+            <div class="content-grid">
+                <div class="content-box"><h3>隱私保護措施</h3><ul><li>所有音訊在本地處理</li><li>只傳送文字到 AI API</li><li>不儲存對話記錄</li><li>用戶自備 API Key</li><li>支援本地部署 AI</li></ul></div>
+                <div class="content-box"><h3>安全特性</h3><ul><li>Manifest V3 權限最小化</li><li>HTTPS 強制</li><li>無背景惡意程式碼</li><li>開源可審計</li></ul></div>
+            </div>
+            <div class="highlight-box"><strong>使用者完全掌控自己的資料與 API 使用</strong></div>
+            <div class="slide-number">07 / 12</div>
+        </div>
+        
+        <!-- Slide 8: Demo -->
+        <div class="slide">
+            <span class="section-header">使用範例</span>
+            <h2>面試情境演示</h2>
+            <div class="content-box" style="margin-bottom:15px">
+                <h3>情境：技術面試</h3>
+                <div class="code-block">
+面試官：「請說明 React 的 Virtual DOM 是如何運作的？」<br><br>
+AI 分析問題中...<br><br>
+💡 <strong>AI 建議答案：</strong><br>
+Virtual DOM 是 React 用來優化 DOM 操作的機制。它是一個 JavaScript 物件...（完整答案建議）<br><br>
+📚 <strong>參考資料：</strong><br>
+- React 官網文檔 - Virtual DOM<br>
+- DOM vs Virtual DOM 比較<br>
+- React 原始碼解析
+                </div>
+            </div>
+            <div class="content-box">
+                <h3>情境：行為面試</h3>
+                <div class="code-block">
+面試官：「請說明你曾經如何處理團隊衝突？」<br><br>
+💡 <strong>AI 答案框架 (STAR 方法)：</strong><br>
+- Situation: 當時的情境是...<br>
+- Task: 我面臨的挑戰是...<br>
+- Action: 我採取的行動...<br>
+- Result: 最終結果...
+                </div>
+            </div>
+            <div class="slide-number">08 / 12</div>
+        </div>
+        
+        <!-- Slide 9: Roadmap -->
+        <div class="slide">
+            <span class="section-header">發展藍圖</span>
+            <h2>功能規劃</h2>
+            <div class="content-grid">
+                <div class="content-box"><h3>短期 (0-3個月)</h3><ul><li>✅ 基礎語音識別</li><li>✅ AI 答案生成</li><li>✅ 參考資料搜尋</li><li>🔄 多平台支援</li></ul></div>
+                <div class="content-box"><h3>中期 (3-6個月)</h3><ul><li>📌 自訂答案模板</li><li>📌 錄音回顧功能</li><li>📌 團隊共用模式</li><li>📌 企業版部署</li></ul></div>
+                <div class="content-box"><h3>長期 (6-12個月)</h3><ul><li>🚀 離線 AI 模型</li><li>🚀 即時翻譯</li><li>🚀 模擬面試練習</li><li>🚀 AI 面試教練</li></ul></div>
+                <div class="content-box"><h3>進階功能</h3><ul><li>💎 情緒分析</li><li>💎 肢體語言建議</li><li>💎 錄影回顧分析</li><li>💎 企業合規審計</li></ul></div>
+            </div>
+            <div class="slide-number">09 / 12</div>
+        </div>
+        
+        <!-- Slide 10: Install -->
+        <div class="slide">
+            <span class="section-header">安裝與使用</span>
+            <h2>如何開始使用</h2>
+            <div class="content-grid">
+                <div class="content-box"><h3>安裝步驟</h3><ol style="padding-left:20px;color:#ddd;font-size:13px;line-height:2"><li>下載擴充功能原始碼</li><li>開啟 Chrome 擴充功能頁面 (chrome://extensions)</li><li>開啟「開發者模式」</li><li>點擊「載入未封裝項目」</li><li>選擇資料夾</li><li>設定 API Key 即可使用</li></ol></div>
+                <div class="content-box"><h3>使用須知</h3><ul><li>需要給予麥克風權限</li><li>自備 OpenAI/Google API Key</li><li>建議使用付費方案避免限制</li><li>僅支援桌面版 Chrome/Edge</li></ul></div>
+            </div>
+            <div class="highlight-box"><strong>原始碼位置：</strong> C:\Users\sean\.openclaw\workspace\ai-interview-assistant</div>
+            <div class="slide-number">10 / 12</div>
+        </div>
+        
+        <!-- Slide 11: About OpenClaw -->
+        <div class="slide">
+            <span class="section-header">關於</span>
+            <h2>這個專案與 OpenClaw</h2>
+            <div class="content-grid">
+                <div class="content-box"><h3>技術支援</h3><ul><li>使用 OpenClaw AI 技能進行圖片生成</li><li>OpenClaw 簡報技能製作投影片</li><li>整合 OpenClaw 的 AI 模型支援</li><li>通過 OpenClaw 上傳到雲端</li></ul></div>
+                <div class="content-box"><h3>OpenClaw 能力</h3><ul><li>🤖 多平台 AI 助理</li><li>🎨 AI 圖片/影片生成</li><li>📊 簡報自動製作</li><li>☁️ 雲端部署整合</li><li>🛠️ 自動化工作流程</li></ul></div>
+            </div>
+            <div class="highlight-box"><strong>這個專案展示了 OpenClaw 生態系的強大整合能力——從概念到實現，一氣呵成。</strong></div>
+            <div class="slide-number">11 / 12</div>
+        </div>
+        
+        <!-- Slide 12: Conclusion -->
+        <div class="slide conclusion">
+            <span class="section-header">結語</span>
+            <blockquote>AI Interview Assistant — 讓每個人都能在面試中發揮最佳表現，獲得理想的職位。</blockquote>
+            <cite>— OpenClaw 專案展示</cite>
+            <div class="product-tags" style="margin-top:30px">
+                <span class="product-tag">🤖 OpenClaw</span>
+                <span class="product-tag">📦 Chrome Extension</span>
+                <span class="product-tag">💡 AI Powered</span>
+            </div>
+            <div class="slide-number">12 / 12</div>
+        </div>
+    </div>
+    <div class="nav">
+        <button onclick="prevSlide()">◀ 上一頁</button>
+        <button onclick="nextSlide()">下一頁 ▶</button>
+    </div>
+    <script>
+        let currentSlide=0;
+        const slides=document.querySelectorAll('.slide');
+        const totalSlides=slides.length;
+        function showSlide(index){
+            slides.forEach(s=>s.classList.remove('active'));
+            slides[index].classList.add('active');
+            document.getElementById('progress').style.width=((index+1)/totalSlides*100)+'%';
+        }
+        function nextSlide(){currentSlide=(currentSlide+1)%totalSlides;showSlide(currentSlide);}
+        function prevSlide(){currentSlide=(currentSlide-1+totalSlides)%totalSlides;showSlide(currentSlide);}
+        document.addEventListener('keydown',(e)=>{if(e.key==='ArrowRight'||e.key===' ')nextSlide();if(e.key==='ArrowLeft')prevSlide();});
+        showSlide(0);
+    </script>
+</body>
+</html>
