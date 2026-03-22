@@ -129,16 +129,26 @@ function updateUI() {
 }
 
 function renderLatest(message) {
+  const loadingIndicator = document.getElementById('loadingIndicator');
+  if (loadingIndicator) loadingIndicator.style.display = 'none';
   document.getElementById('aiResponse').innerHTML = `
       <div class="question">問題: ${escapeHtml(message.question)}</div>
       <div class="answer">${escapeHtml(message.answer || '正在分析...')}</div>
       ${message.sources?.length ? `
         <div class="sources">
           <div class="sources-title">📚 參考資料:</div>
-          ${message.sources.map(s => `<a href="${s.url}" class="source-item" target="_blank">${escapeHtml(s.title)}</a>`).join('')}
+          ${message.sources.map(s => `<a href="${s.url}" class="source-item" target="_blank" rel="noopener noreferrer">${escapeHtml(s.title)}</a>`).join('')}
         </div>
       ` : ''}
     `;
+}
+
+function showLoading() {
+  const loadingIndicator = document.getElementById('loadingIndicator');
+  if (loadingIndicator) {
+    loadingIndicator.style.display = 'block';
+    document.getElementById('aiResponse').querySelector('.answer').textContent = 'AI 正在分析問題...';
+  }
 }
 
 function renderHistory(history) {

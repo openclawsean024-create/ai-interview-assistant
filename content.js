@@ -131,19 +131,50 @@ function showOverlay(question, answer, sources) {
   overlay.id = 'ai-interview-overlay';
   overlay.innerHTML = `
     <style>
-      #ai-interview-overlay { position: fixed; bottom: 20px; right: 20px; width: 380px; max-height: 420px; background: rgba(26, 26, 46, 0.98); border: 1px solid rgba(102, 126, 234, 0.3); border-radius: 16px; padding: 20px; z-index: 999999; box-shadow: 0 10px 40px rgba(0,0,0,0.5); font-family: 'Segoe UI', sans-serif; overflow-y: auto; }
-      #ai-interview-overlay .question { color: #667eea; font-weight: 600; font-size: 14px; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.1); }
-      #ai-interview-overlay .answer { color: #fff; font-size: 14px; line-height: 1.6; margin-bottom: 12px; white-space: pre-wrap; }
+      #ai-interview-overlay { position: fixed; bottom: 20px; right: 20px; width: 380px; max-height: 420px; background: rgba(26, 26, 46, 0.98); border: 1px solid rgba(102, 126, 234, 0.3); border-radius: 16px; padding: 20px; z-index: 999999; box-shadow: 0 10px 40px rgba(0,0,0,0.5); font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif; overflow-y: auto; cursor: move; user-select: none; }
+      #ai-interview-overlay::-webkit-scrollbar { width: 6px; }
+      #ai-interview-overlay::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 3px; }
+      #ai-interview-overlay::-webkit-scrollbar-thumb { background: rgba(102,126,234,0.4); border-radius: 3px; }
+      #ai-interview-overlay .question { color: #667eea; font-weight: 600; font-size: 14px; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.1); cursor: default; }
+      #ai-interview-overlay .answer { color: #fff; font-size: 14px; line-height: 1.6; margin-bottom: 12px; white-space: pre-wrap; cursor: default; }
       #ai-interview-overlay .sources { padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.1); }
       #ai-interview-overlay .sources-title { font-size: 11px; color: #666; margin-bottom: 8px; }
-      #ai-interview-overlay a { display: block; font-size: 12px; color: #4a9eff; text-decoration: none; margin: 4px 0; }
-      #ai-interview-overlay .close-btn { position: absolute; top: 10px; right: 10px; background: none; border: none; color: #666; cursor: pointer; font-size: 18px; }
+      #ai-interview-overlay a { display: block; font-size: 12px; color: #4a9eff; text-decoration: none; margin: 4px 0; cursor: pointer; }
+      #ai-interview-overlay a:hover { text-decoration: underline; }
+      #ai-interview-overlay .close-btn { position: absolute; top: 8px; right: 8px; background: rgba(255,255,255,0.1); border: none; color: #888; cursor: pointer; font-size: 16px; width: 24px; height: 24px; border-radius: 50%; transition: background 0.2s; }
+      #ai-interview-overlay .close-btn:hover { background: rgba(239,68,68,0.5); color: #fff; }
+      #ai-interview-overlay .drag-hint { font-size: 10px; color: #555; text-align: center; margin-bottom: 8px; }
     </style>
-    <button class="close-btn" onclick="this.parentElement.remove()">×</button>
+    <div class="drag-hint">⋮⋮ 拖曳移動</div>
+    <button class="close-btn" onclick="this.parentElement.remove()" aria-label="關閉">×</button>
     <div class="question">問題: ${question}</div>
     <div class="answer">${answer.replace(/答案:|參考資料:/g, '').split('參考資料')[0]}</div>
-    ${sources?.length ? `<div class="sources"><div class="sources-title">📚 參考資料:</div>${sources.map(s => `<a href="${s.url}" target="_blank">${s.title}</a>`).join('')}</div>` : ''}
+    ${sources?.length ? `<div class="sources"><div class="sources-title">📚 參考資料:</div>${sources.map(s => `<a href="${s.url}" target="_blank" rel="noopener noreferrer">${s.title}</a>`).join('')}</div>` : ''}
   `;
+
+  // Drag functionality
+  let isDragging = false, startX, startY, startLeft, startBottom;
+  overlay.addEventListener('mousedown', (e) => {
+    if (e.target.classList.contains('close-btn') || e.target.tagName === 'A') return;
+    isDragging = true;
+    startX = e.clientX;
+    startY = e.clientY;
+    const rect = overlay.getBoundingClientRect();
+    startLeft = rect.left;
+    startBottom = window.innerHeight - rect.top;
+    overlay.style.right = 'auto';
+    overlay.style.bottom = 'auto';
+    overlay.style.left = startLeft + 'px';
+    overlay.style.top = startBottom + 'px';
+  });
+  document.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+    const dx = e.clientX - startX;
+    const dy = startY - e.clientY;
+    overlay.style.left = (startLeft + dx) + 'px';
+    overlay.style.top = (startBottom + dy) + 'px';
+  });
+  document.addEventListener('mouseup', () => { isDragging = false; });
 
   document.body.appendChild(overlay);
   setTimeout(() => overlay.remove(), 60000);

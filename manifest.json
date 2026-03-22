@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "AI Interview Assistant",
-  "version": "1.0",
+  "version": "1.2",
   "description": "Real-time AI-powered interview assistant that provides answers and reference materials during interviews on Zoom, Teams, Meet, and more.",
   "permissions": [
     "activeTab",
