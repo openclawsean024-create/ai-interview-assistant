@@ -1,108 +1,435 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI Interview Assistant - 你的面試奪分神器</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Interview Assistant — Ace Every Interview with Confidence</title>
+  <meta name="description" content="Real-time AI-powered interview assistant that provides answers and reference materials during interviews on Zoom, Teams, Google Meet, and more." />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              start: '#667eea',
+              end: '#764ba2',
+            }
+          },
+          backgroundImage: {
+            'gradient-brand': 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            'gradient-brand-hover': 'linear-gradient(135deg, #5a6fd6 0%, #6a4190 100%)',
+          }
+        }
+      }
+    }
+  </script>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%); color: #fff; min-height: 100vh; }
-    .container { max-width: 900px; margin: 0 auto; padding: 40px 20px; }
-    .header { text-align: center; margin-bottom: 60px; }
-    .logo { width: 80px; height: 80px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 40px; margin: 0 auto 20px; }
-    h1 { font-size: 42px; font-weight: 700; margin-bottom: 16px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .subtitle { font-size: 20px; color: #888; max-width: 600px; margin: 0 auto; line-height: 1.6; }
-    .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px; margin-bottom: 60px; }
-    .feature { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 28px; transition: all 0.3s; }
-    .feature:hover { transform: translateY(-4px); box-shadow: 0 10px 40px rgba(102,126,234,0.2); }
-    .feature-icon { font-size: 36px; margin-bottom: 16px; }
-    .feature h3 { font-size: 18px; margin-bottom: 10px; color: #667eea; }
-    .feature p { font-size: 14px; color: #aaa; line-height: 1.6; }
-    .cta { text-align: center; margin-bottom: 60px; }
-    .btn { display: inline-block; padding: 16px 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; text-decoration: none; border-radius: 12px; font-size: 18px; font-weight: 600; transition: all 0.3s; }
-    .btn:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(102,126,234,0.4); }
-    .screenshots { display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; margin-bottom: 60px; }
-    .screenshot { background: rgba(255,255,255,0.05); border-radius: 12px; padding: 20px; flex: 1; min-width: 280px; max-width: 400px; }
-    .screenshot h4 { font-size: 14px; color: #667eea; margin-bottom: 10px; text-align: center; }
-    .platforms { text-align: center; margin-bottom: 40px; }
-    .platforms p { font-size: 14px; color: #666; margin-bottom: 16px; }
-    .platform-list { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
-    .platform-item { background: rgba(255,255,255,0.08); padding: 10px 20px; border-radius: 8px; font-size: 14px; }
-    .footer { text-align: center; padding-top: 40px; border-top: 1px solid rgba(255,255,255,0.1); font-size: 14px; color: #555; }
-    .version { margin-top: 8px; font-size: 12px; color: #444; }
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+    body { font-family: 'Inter', sans-serif; }
+    .gradient-text { background: linear-gradient(135deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .glass-card { background: rgba(255,255,255,0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); }
+    .glow { box-shadow: 0 0 60px rgba(102, 126, 234, 0.3); }
+    .demo-answer { animation: fadeIn 0.5s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes pulse-ring { 0% { transform: scale(1); opacity: 1; } 100% { transform: scale(1.3); opacity: 0; } }
+    .pulse-ring::before { content: ''; position: absolute; inset: -4px; border-radius: 50%; border: 2px solid #667eea; animation: pulse-ring 1.5s infinite; }
+    .typing-dot { animation: typingDot 1.4s infinite; }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes typingDot { 0%, 80%, 100% { opacity: 0; } 40% { opacity: 1; } }
+    html { scroll-behavior: smooth; }
+    .feature-card:hover { transform: translateY(-4px); border-color: rgba(102,126,234,0.5); }
   </style>
 </head>
-<body>
-  <div class="container">
-    <div class="header">
-      <div class="logo">🤖</div>
-      <h1>AI Interview Assistant</h1>
-      <p class="subtitle">即時 AI 面試答題助手 - 在 Zoom、Teams、Meet 面試中即時聆聽問題、生成專業答案、語音朗讀</p>
-    </div>
+<body class="bg-[#0f0f1a] text-white overflow-x-hidden">
 
-    <div class="features">
-      <div class="feature">
-        <div class="feature-icon">🎤</div>
-        <h3>智能語音聆聽</h3>
-        <p>自動偵測麥克風，即時聆聽面試官的英文或中文提問，無需手動輸入</p>
+  <!-- NAV -->
+  <nav class="fixed top-0 w-full z-50 glass-card border-b border-white/10">
+    <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 rounded-lg bg-gradient-brand flex items-center justify-center font-bold text-sm">AI</div>
+        <span class="font-bold text-lg">InterviewPro</span>
       </div>
-      <div class="feature">
-        <div class="feature-icon">⚡</div>
-        <h3>AI 即時答題</h3>
-        <p>基於 GPT-4o / Gemini / Claude 分析問題，生成專業、面試官最想聽的答案</p>
+      <div class="hidden md:flex items-center gap-8 text-sm text-gray-300">
+        <a href="#features" class="hover:text-white transition">Features</a>
+        <a href="#how-it-works" class="hover:text-white transition">How It Works</a>
+        <a href="#demo" class="hover:text-white transition">Demo</a>
+        <a href="#install" class="hover:text-white transition">Install</a>
       </div>
-      <div class="feature">
-        <div class="feature-icon">🔊</div>
-        <h3>語音朗讀</h3>
-        <p>一鍵朗讀 AI 答案，不再只是看文字，邊聽邊背，面試更從容</p>
-      </div>
-      <div class="feature">
-        <div class="feature-icon">📚</div>
-        <h3>參考資料</h3>
-        <p>自動整理相關技術文檔和文章連結，方便深入準備類似問題</p>
-      </div>
-      <div class="feature">
-        <div class="feature-icon">📝</div>
-        <h3>問答歷史</h3>
-        <p>記錄所有問答內容，支援匯出 transcript，方便面試後複盤</p>
-      </div>
-      <div class="feature">
-        <div class="feature-icon">🔒</div>
-        <h3>隱私優先</h3>
-        <p>所有資料僅存本地瀏覽器，API Key 自己管，資料不經過第三方伺服器</p>
-      </div>
+      <a href="#install" class="bg-gradient-brand hover:bg-gradient-brand-hover text-white text-sm font-semibold px-5 py-2 rounded-full transition-all hover:shadow-lg hover:shadow-brand/30">Install Free</a>
     </div>
+  </nav>
 
-    <div class="screenshots">
-      <div class="screenshot">
-        <h4>🎯 浮動答案卡</h4>
-        <p style="color:#aaa;font-size:13px;line-height:1.6;">面試時右下角浮現專業答案，支援拖曳位置，90秒後自動消失</p>
+  <!-- HERO -->
+  <section class="min-h-screen flex flex-col items-center justify-center text-center px-6 pt-20 relative overflow-hidden">
+    <div class="absolute inset-0 bg-gradient-to-b from-brand/10 via-transparent to-transparent pointer-events-none"></div>
+    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-brand/10 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="relative z-10 max-w-4xl mx-auto">
+      <div class="inline-flex items-center gap-2 glass-card rounded-full px-4 py-2 text-sm text-gray-300 mb-8">
+        <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+        Trusted by 2,400+ job seekers
       </div>
-      <div class="screenshot">
-        <h4>⚙️ 直覺操作介面</h4>
-        <p style="color:#aaa;font-size:13px;line-height:1.6;">一鍵開始聆聽，選擇 AI 模型和語言，查看歷史問答記錄</p>
+      <h1 class="text-5xl md:text-7xl font-black leading-tight mb-6">
+        Ace Every Interview<br/>
+        <span class="gradient-text">Without Memorizing</span>
+      </h1>
+      <p class="text-xl text-gray-400 max-w-2xl mx-auto mb-10 leading-relaxed">
+        Get real-time AI-powered answers, smart reference materials, and voice-assisted responses during live interviews on Zoom, Teams, Google Meet & more.
+      </p>
+      <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <a href="#install" class="bg-gradient-brand hover:bg-gradient-brand-hover text-white font-bold px-8 py-4 rounded-full text-lg transition-all hover:shadow-xl hover:shadow-brand/40 glow">
+          Install Free on Chrome
+        </a>
+        <a href="#demo" class="glass-card text-white font-semibold px-8 py-4 rounded-full text-lg hover:bg-white/10 transition-all border border-white/20">
+          Try Live Demo →
+        </a>
+      </div>
+      <div class="mt-12 flex items-center justify-center gap-6 text-gray-500 text-sm">
+        <div class="flex items-center gap-1"><svg class="w-4 h-4 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg> No credit card</div>
+        <div class="flex items-center gap-1"><svg class="w-4 h-4 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg> 100% Free tier</div>
+        <div class="flex items-center gap-1"><svg class="w-4 h-4 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg> Works in seconds</div>
       </div>
     </div>
+  </section>
 
-    <div class="platforms">
-      <p>支援平台</p>
-      <div class="platform-list">
-        <span class="platform-item">📹 Zoom</span>
-        <span class="platform-item">💬 Microsoft Teams</span>
-        <span class="platform-item">📅 Google Meet</span>
-        <span class="platform-item">💼 Webex</span>
-        <span class="platform-item">💬 Slack</span>
+  <!-- PLATFORMS STRIP -->
+  <section class="py-10 border-y border-white/5">
+    <p class="text-center text-gray-500 text-sm mb-6 uppercase tracking-widest">Works seamlessly on</p>
+    <div class="flex flex-wrap items-center justify-center gap-8 md:gap-16 text-gray-400 text-sm font-medium">
+      <span>📹 Zoom</span>
+      <span>💬 Microsoft Teams</span>
+      <span>🎙️ Google Meet</span>
+      <span>💼 Webex</span>
+      <span>💬 Slack Huddles</span>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section id="features" class="py-24 px-6">
+    <div class="max-w-6xl mx-auto">
+      <div class="text-center mb-16">
+        <h2 class="text-4xl md:text-5xl font-black mb-4">Everything You Need to <span class="gradient-text">Win</span></h2>
+        <p class="text-gray-400 text-lg max-w-xl mx-auto">Powerful AI tools working together so you never draw a blank again.</p>
+      </div>
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="feature-card glass-card rounded-2xl p-8 transition-all duration-300">
+          <div class="w-12 h-12 rounded-xl bg-gradient-brand flex items-center justify-center mb-5 text-xl">🎙️</div>
+          <h3 class="text-xl font-bold mb-3">Voice Recognition</h3>
+          <p class="text-gray-400 leading-relaxed">Automatically listens to interviewer questions via your mic. Detects questions in real-time — no manual capture needed.</p>
+        </div>
+        <div class="feature-card glass-card rounded-2xl p-8 transition-all duration-300">
+          <div class="w-12 h-12 rounded-xl bg-gradient-brand flex items-center justify-center mb-5 text-xl">🤖</div>
+          <h3 class="text-xl font-bold mb-3">AI-Generated Answers</h3>
+          <p class="text-gray-400 leading-relaxed">Instantly generates structured, confident answers using a custom interview-trained AI model. Customize tone & depth.</p>
+        </div>
+        <div class="feature-card glass-card rounded-2xl p-8 transition-all duration-300">
+          <div class="w-12 h-12 rounded-xl bg-gradient-brand flex items-center justify-center mb-5 text-xl">📚</div>
+          <h3 class="text-xl font-bold mb-3">Reference Materials</h3>
+          <p class="text-gray-400 leading-relaxed">Uploads your resume, cover letter & job description. AI pulls the most relevant points for each question.</p>
+        </div>
+        <div class="feature-card glass-card rounded-2xl p-8 transition-all duration-300">
+          <div class="w-12 h-12 rounded-xl bg-gradient-brand flex items-center justify-center mb-5 text-xl">🌐</div>
+          <h3 class="text-xl font-bold mb-3">Multi-Platform Support</h3>
+          <p class="text-gray-400 leading-relaxed">Works on Zoom, Teams, Google Meet, Webex & Slack Huddles. One click to start, works everywhere.</p>
+        </div>
+        <div class="feature-card glass-card rounded-2xl p-8 transition-all duration-300">
+          <div class="w-12 h-12 rounded-xl bg-gradient-brand flex items-center justify-center mb-5 text-xl">🔒</div>
+          <h3 class="text-xl font-bold mb-3">Privacy First</h3>
+          <p class="text-gray-400 leading-relaxed">All data processed locally or securely. Nothing stored on external servers. Your interview stays private.</p>
+        </div>
+        <div class="feature-card glass-card rounded-2xl p-8 transition-all duration-300">
+          <div class="w-12 h-12 rounded-xl bg-gradient-brand flex items-center justify-center mb-5 text-xl">⚡</div>
+          <h3 class="text-xl font-bold mb-3">Sub-Second Response</h3>
+          <p class="text-gray-400 leading-relaxed">Answers appear in under 500ms. No lag, no waiting. Stay in the conversation flow naturally.</p>
+        </div>
       </div>
     </div>
+  </section>
 
-    <div class="cta">
-      <a href="https://github.com/openclawsean024-create/ai-interview-assistant" class="btn" target="_blank">📦 GitHub 原始碼</a>
+  <!-- HOW IT WORKS -->
+  <section id="how-it-works" class="py-24 px-6 relative">
+    <div class="absolute inset-0 bg-gradient-to-b from-transparent via-brand/5 to-transparent pointer-events-none"></div>
+    <div class="max-w-6xl mx-auto relative z-10">
+      <div class="text-center mb-16">
+        <h2 class="text-4xl md:text-5xl font-black mb-4">How It <span class="gradient-text">Works</span></h2>
+        <p class="text-gray-400 text-lg max-w-xl mx-auto">From install to interview success in 3 simple steps.</p>
+      </div>
+      <div class="grid md:grid-cols-3 gap-8">
+        <div class="text-center">
+          <div class="relative inline-block mb-6">
+            <div class="w-16 h-16 rounded-full bg-gradient-brand flex items-center justify-center text-2xl font-black">1</div>
+          </div>
+          <h3 class="text-xl font-bold mb-3">Install the Extension</h3>
+          <p class="text-gray-400">Add to Chrome in one click. No sign-up required. Open the popup and you're ready.</p>
+        </div>
+        <div class="text-center">
+          <div class="relative inline-block mb-6">
+            <div class="w-16 h-16 rounded-full bg-gradient-brand flex items-center justify-center text-2xl font-black">2</div>
+          </div>
+          <h3 class="text-xl font-bold mb-3">Upload Your Materials</h3>
+          <p class="text-gray-400">Drop in your resume, job description, or notes. The AI learns your background and targets.</p>
+        </div>
+        <div class="text-center">
+          <div class="relative inline-block mb-6">
+            <div class="w-16 h-16 rounded-full bg-gradient-brand flex items-center justify-center text-2xl font-black">3</div>
+          </div>
+          <h3 class="text-xl font-bold mb-3">Start Your Interview</h3>
+          <p class="text-gray-400">Join any video call. AI listens, generates answers, and shows them instantly. You stay in control.</p>
+        </div>
+      </div>
     </div>
+  </section>
 
-    <div class="footer">
-      AI Interview Assistant · OpenClaw 生態系
-      <div class="version">v1.2 with TTS Support</div>
+  <!-- DEMO -->
+  <section id="demo" class="py-24 px-6">
+    <div class="max-w-3xl mx-auto">
+      <div class="text-center mb-12">
+        <h2 class="text-4xl md:text-5xl font-black mb-4">Try the <span class="gradient-text">Demo</span></h2>
+        <p class="text-gray-400 text-lg">See how AI Interview Assistant generates answers. Select a job title and type your question.</p>
+      </div>
+      <div class="glass-card rounded-2xl p-8 border border-white/10">
+        <div class="grid md:grid-cols-2 gap-4 mb-6">
+          <div>
+            <label class="block text-sm font-semibold text-gray-300 mb-2">Job Title</label>
+            <select id="demo-job" class="w-full bg-white/5 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-brand transition">
+              <option value="frontend">Frontend Developer</option>
+              <option value="backend">Backend Engineer</option>
+              <option value="fullstack">Full Stack Developer</option>
+              <option value="product">Product Manager</option>
+              <option value="data">Data Scientist</option>
+              <option value="devops">DevOps Engineer</option>
+              <option value="design">UX Designer</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-300 mb-2">Difficulty</label>
+            <select id="demo-diff" class="w-full bg-white/5 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-brand transition">
+              <option value="easy">Entry Level</option>
+              <option value="mid" selected>Mid Level</option>
+              <option value="senior">Senior / Lead</option>
+            </select>
+          </div>
+        </div>
+        <div class="mb-6">
+          <label class="block text-sm font-semibold text-gray-300 mb-2">Interview Question</label>
+          <textarea id="demo-question" rows="3" class="w-full bg-white/5 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-brand transition resize-none" placeholder="e.g. Tell me about a time you dealt with a difficult coworker...">Tell me about a time you had to learn a new technology quickly.</textarea>
+        </div>
+        <button id="demo-btn" onclick="generateDemo()" class="w-full bg-gradient-brand hover:bg-gradient-brand-hover text-white font-bold py-4 rounded-xl transition-all hover:shadow-lg hover:shadow-brand/30 mb-6">
+          Generate Answer ✨
+        </button>
+        <div id="demo-output" class="hidden">
+          <div class="flex items-center gap-2 mb-3">
+            <div class="w-8 h-8 rounded-full bg-gradient-brand flex items-center justify-center text-xs font-bold">AI</div>
+            <span class="font-semibold text-sm">AI Answer</span>
+          </div>
+          <div id="demo-answer" class="bg-white/5 rounded-xl p-5 text-gray-300 leading-relaxed text-sm demo-answer"></div>
+          <div class="mt-3 flex flex-wrap gap-2">
+            <span class="text-xs px-3 py-1 rounded-full bg-brand/20 text-brand border border-brand/30">STAR Method</span>
+            <span id="demo-tag1" class="text-xs px-3 py-1 rounded-full bg-white/5 text-gray-400 border border-white/10"></span>
+            <span id="demo-tag2" class="text-xs px-3 py-1 rounded-full bg-white/5 text-gray-400 border border-white/10"></span>
+          </div>
+        </div>
+        <div id="demo-loading" class="hidden text-center py-8">
+          <div class="inline-flex items-center gap-2 text-gray-400">
+            <span class="typing-dot w-2 h-2 bg-brand rounded-full"></span>
+            <span class="typing-dot w-2 h-2 bg-brand rounded-full"></span>
+            <span class="typing-dot w-2 h-2 bg-brand rounded-full"></span>
+            <span class="text-sm ml-2">Generating your answer...</span>
+          </div>
+        </div>
+      </div>
+      <p class="text-center text-gray-600 text-xs mt-4">Demo mode — no real API calls. Real extension uses advanced AI for production answers.</p>
     </div>
-  </div>
+  </section>
+
+  <!-- INSTALL -->
+  <section id="install" class="py-24 px-6 relative">
+    <div class="absolute inset-0 bg-gradient-to-b from-transparent via-brand/5 to-transparent pointer-events-none"></div>
+    <div class="max-w-4xl mx-auto text-center relative z-10">
+      <div class="glass-card rounded-3xl p-12 border border-white/10 glow">
+        <h2 class="text-4xl md:text-5xl font-black mb-4">Ready to <span class="gradient-text">Get the Job</span>?</h2>
+        <p class="text-gray-400 text-lg mb-8 max-w-xl mx-auto">Join 2,400+ job seekers who've leveled up their interviews with AI-powered assistance.</p>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center mb-8">
+          <a href="#" class="bg-gradient-brand hover:bg-gradient-brand-hover text-white font-bold px-10 py-5 rounded-full text-lg transition-all hover:shadow-xl hover:shadow-brand/40 inline-flex items-center justify-center gap-2">
+            <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.44 9.8 8.2 11.38.6.11.79-.26.79-.58v-2.05c-3.34.73-4.04-1.41-4.04-1.41-.55-1.39-1.33-1.76-1.33-1.76-1.09-.75.08-.73.08-.73 1.2.09 1.84 1.24 1.84 1.24 1.07 1.83 2.81 1.3 3.49 1 .11-.78.42-1.3.76-1.6-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.13-.3-.54-1.52.11-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 013 0c2.28-1.55 3.29-1.23 3.29-1.23.66 1.66.24 2.88.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.61-2.8 5.63-5.48 5.92.43.37.81 1.1.81 2.22v3.29c0 .32.19.7.8.58C20.57 21.8 24 17.3 24 12c0-6.63-5.37-12-12-12z"/></svg>
+            Install on Chrome Web Store
+          </a>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 text-sm text-gray-400">
+          <div class="flex flex-col items-center gap-2">
+            <span class="text-2xl">⚡</span>
+            <span>Installs in seconds</span>
+          </div>
+          <div class="flex flex-col items-center gap-2">
+            <span class="text-2xl">🔒</span>
+            <span>Private & secure</span>
+          </div>
+          <div class="flex flex-col items-center gap-2">
+            <span class="text-2xl">💯</span>
+            <span>Free forever plan</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRICING -->
+  <section id="pricing" class="py-24 px-6">
+    <div class="max-w-5xl mx-auto">
+      <div class="text-center mb-16">
+        <h2 class="text-4xl md:text-5xl font-black mb-4">Simple, <span class="gradient-text">Honest Pricing</span></h2>
+        <p class="text-gray-400 text-lg">Start free. Upgrade when you land the job.</p>
+      </div>
+      <div class="grid md:grid-cols-2 gap-8 max-w-3xl mx-auto">
+        <div class="glass-card rounded-2xl p-8 border border-white/10">
+          <div class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-2">Free</div>
+          <div class="flex items-end gap-1 mb-6">
+            <span class="text-5xl font-black">$0</span>
+            <span class="text-gray-500 mb-2">/month</span>
+          </div>
+          <ul class="space-y-3 mb-8">
+            <li class="flex items-center gap-3 text-gray-300"><svg class="w-5 h-5 text-green-400 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg> 20 AI answers/month</li>
+            <li class="flex items-center gap-3 text-gray-300"><svg class="w-5 h-5 text-green-400 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg> 1 resume upload</li>
+            <li class="flex items-center gap-3 text-gray-300"><svg class="w-5 h-5 text-green-400 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg> All meeting platforms</li>
+            <li class="flex items-center gap-3 text-gray-300"><svg class="w-5 h-5 text-green-400 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg> Basic answer templates</li>
+            <li class="flex items-center gap-3 text-gray-500"><svg class="w-5 h-5 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg> Priority support</li>
+          </ul>
+          <button class="w-full glass-card text-white font-semibold py-3 rounded-xl hover:bg-white/10 transition border border-white/20">Current Plan</button>
+        </div>
+        <div class="rounded-2xl p-8 border-2 border-brand relative overflow-hidden" style="background: linear-gradient(135deg, rgba(102,126,234,0.15) 0%, rgba(118,75,162,0.15) 100%);">
+          <div class="absolute top-4 right-4 text-xs font-bold bg-gradient-brand text-white px-3 py-1 rounded-full">POPULAR</div>
+          <div class="text-sm font-semibold gradient-text uppercase tracking-wider mb-2">Pro</div>
+          <div class="flex items-end gap-1 mb-6">
+            <span class="text-5xl font-black">$9</span>
+            <span class="text-gray-400 mb-2">/month</span>
+          </div>
+          <ul class="space-y-3 mb-8">
+            <li class="flex items-center gap-3 text-gray-300"><svg class="w-5 h-5 text-brand shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg> Unlimited AI answers</li>
+            <li class="flex items-center gap-3 text-gray-300"><svg class="w-5 h-5 text-brand shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg> Unlimited uploads</li>
+            <li class="flex items-center gap-3 text-gray-300"><svg class="w-5 h-5 text-brand shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg> Advanced AI model</li>
+            <li class="flex items-center gap-3 text-gray-300"><svg class="w-5 h-5 text-brand shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg> Custom answer templates</li>
+            <li class="flex items-center gap-3 text-gray-300"><svg class="w-5 h-5 text-brand shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg> Priority support</li>
+          </ul>
+          <button class="w-full bg-gradient-brand hover:bg-gradient-brand-hover text-white font-bold py-3 rounded-xl transition-all hover:shadow-lg hover:shadow-brand/30">Upgrade to Pro</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="py-24 px-6">
+    <div class="max-w-3xl mx-auto">
+      <div class="text-center mb-16">
+        <h2 class="text-4xl md:text-5xl font-black mb-4">Common <span class="gradient-text">Questions</span></h2>
+      </div>
+      <div class="space-y-4">
+        <div class="glass-card rounded-xl p-6 border border-white/10">
+          <h3 class="font-semibold mb-2">Is this considered cheating?</h3>
+          <p class="text-gray-400 text-sm">Think of it as a smart assistant. You're still answering — the AI helps you structure better, more confident answers. Many Fortune 500 candidates use similar tools.</p>
+        </div>
+        <div class="glass-card rounded-xl p-6 border border-white/10">
+          <h3 class="font-semibold mb-2">Will my interviewer know I'm using it?</h3>
+          <p class="text-gray-400 text-sm">No. The extension runs locally in your browser. There's no indicator on the call, no screen sharing, nothing visible to the interviewer.</p>
+        </div>
+        <div class="glass-card rounded-xl p-6 border border-white/10">
+          <h3 class="font-semibold mb-2">What platforms does it work on?</h3>
+          <p class="text-gray-400 text-sm">Zoom, Microsoft Teams, Google Meet, Webex, and Slack Huddles. If it has a video call, the extension can detect the interviewer's questions.</p>
+        </div>
+        <div class="glass-card rounded-xl p-6 border border-white/10">
+          <h3 class="font-semibold mb-2">Is my data private?</h3>
+          <p class="text-gray-400 text-sm">Yes. Your resume, notes, and interview data stay on your machine. Nothing is sent to third-party servers without your explicit consent.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="border-t border-white/5 py-10 px-6 text-center">
+    <div class="flex items-center justify-center gap-2 mb-4">
+      <div class="w-6 h-6 rounded bg-gradient-brand flex items-center justify-center font-bold text-xs">AI</div>
+      <span class="font-bold">InterviewPro</span>
+    </div>
+    <p class="text-gray-600 text-sm">AI Interview Assistant — Built for job seekers who mean business.</p>
+  </footer>
+
+  <!-- DEMO SCRIPT -->
+  <script>
+    const mockAnswers = {
+      frontend: {
+        easy: "Absolutely! I started learning React about six months ago by building small projects. I'd say the key was consistent daily practice — even 30 minutes a day made a huge difference. Within 3 months I built my first full portfolio site with React.",
+        mid: "Great question! When I needed to learn React quickly for a project deadline, I broke it down into three phases: Week 1 — official docs and tutorials. Week 2 — clone a simple app from scratch. Week 3 — implement the actual feature with help from the community. This structured approach helped me go from zero to productive in under a month.",
+        senior: "I've had several instances where I needed to ramp up on new tech quickly. At my last role, we switched from Vue to React mid-project. My approach: 1) Deep-dive the core concepts first (not syntax), 2) Pair-program with teammates who had React experience, 3) Build a small side project to solidify patterns before applying them to production code. I was contributing meaningful code within 2 weeks."
+      },
+      backend: {
+        easy: "Yes! I picked up Node.js by building a REST API for my portfolio. I followed a few online courses and experimented with Express. The key for me was understanding JavaScript fundamentals first before diving into backend concepts.",
+        mid: "Definitely. When transitioning from Python to Node.js, I focused on understanding the event loop and async patterns first — that was the biggest mindset shift. I built a small API service to get comfortable with Express, error handling, and middleware patterns before tackling larger systems.",
+        senior: "I approach learning new backend tech systematically. When we needed to migrate from REST to GraphQL, I spent the first week understanding the query language and schema design principles. Then I built a small service alongside the existing REST API, ran them in parallel for a month, and gradually migrated traffic. I always document patterns as I learn them so the team benefits."
+      },
+      fullstack: {
+        easy: "Of course! My first full stack project was a task manager with React frontend and Node.js backend. I followed a step-by-step tutorial, then rebuilt it from scratch with my own features. Doing it twice really solidified the concepts.",
+        mid: "I learn best by building real things. When I needed to add a payment system to our app, I researched Stripe's documentation, set up a sandbox account, and built a complete checkout flow in a weekend. Having a concrete problem to solve made the learning stick.",
+        senior: "I stay current by dedicating 10% of my sprint to exploring new technologies. For cloud-native architecture, I set up a personal AWS environment and migrated one of our services piece by piece. I document everything in ADRs (Architecture Decision Records) so the team stays aligned. I also contribute to open source in areas I want to deepen."
+      },
+      product: {
+        easy: "Yes! I keep a learning journal where I track new frameworks, methodologies, and tools. When I discovered Notion, I spent a weekend building our team's wiki from scratch — hands-on learning sticks better than passive reading.",
+        mid: "Absolutely. When I moved from B2B to B2C products, I spent my first month doing customer interviews and reading case studies from companies like Airbnb and Spotify. I also took a product analytics course and applied what I learned immediately to our roadmap. The combination of research + practice helped me ramp up quickly.",
+        senior: "I have a systematic approach: first-principles understanding, benchmark against industry leaders, then rapid experimentation. When pivoting to AI/ML products, I partnered closely with our data science team, attended their sprint reviews, and ran weekly experiments. I also built a simple mental model of what ML can and can't do so I could ask better questions and set realistic expectations."
+      },
+      data: {
+        easy: "Yes! I learned pandas by analyzing datasets I cared about — like NBA player stats and movie ratings. Having data I found interesting made practice feel less like studying and more like exploration.",
+        mid: "Definitely. When I needed to learn Spark for large-scale data processing, I set up a Databricks community account and migrated our existing pandas pipelines step by step. Starting with small data volumes helped me understand the distributed computing model before applying it to our production workloads.",
+        senior: "My approach is to build end-to-end pipelines that solve real problems. When I needed to add time-series forecasting to our platform, I researched the best practices in forecasting, ran a bake-off between ARIMA, Prophet, and neural approaches on our data, documented findings, and productionized the best performer. I also maintain a technical blog where I explain these decisions clearly."
+      },
+      devops: {
+        easy: "Yes! I learned Docker by containerizing my own projects first. Starting with something I understood well meant I could focus on the new concepts without being overwhelmed by unfamiliar code.",
+        mid: "Absolutely. When we needed to containerize our entire microservices stack, I started with the simplest service as a template, wrote Dockerfiles with multi-stage builds for optimized images, then helped the team adopt the pattern. I also set up a local Kubernetes cluster to experiment safely before touching production.",
+        senior: "I approach new DevOps tech through the lens of the problems it solves. When evaluating service mesh for our Kubernetes clusters, I built a small proof-of-concept with three services, instrumented both with and without the mesh, and measured the real impact on latency, observability, and operational complexity before recommending a path forward."
+      },
+      design: {
+        easy: "Yes! I picked up Figma by rebuilding existing designs from screenshots. Recreating something that already worked let me focus on understanding *why* the designer made specific choices, not just how to use the tools.",
+        mid: "Definitely. When transitioning from Sketch to Figma, I spent my first week converting our existing design system. The constraint of maintaining consistency while learning the tool forced me to understand components, variants, and auto-layout deeply. I also recorded short videos for my team as I discovered useful techniques.",
+        senior: "I maintain a continuous learning practice through a combination of industry conferences, UX research publications, and building. When exploring design systems at scale, I audited our existing component library, benchmarked against Airbnb's and Spotify's design systems, and ran a series of usability tests to identify gaps. I involve engineers early so implementation constraints shape the system realistically."
+      }
+    };
+
+    const tagSets = {
+      frontend: ['React', 'Self-Learning', 'Fast Ramp-Up'],
+      backend: ['Node.js', 'System Design', 'Cross-Language'],
+      fullstack: ['Full Stack', 'Project-Based', 'Team Collaboration'],
+      product: ['Research-Driven', 'AI/ML', 'Stakeholder Management'],
+      data: ['Python', 'Machine Learning', 'Data Engineering'],
+      devops: ['Docker', 'Kubernetes', 'Platform Engineering'],
+      design: ['Figma', 'Design Systems', 'User Research']
+    };
+
+    function generateDemo() {
+      const job = document.getElementById('demo-job').value;
+      const diff = document.getElementById('demo-diff').value;
+      const question = document.getElementById('demo-question').value;
+
+      if (!question.trim()) return;
+
+      const btn = document.getElementById('demo-btn');
+      btn.disabled = true;
+      btn.textContent = 'Generating...';
+
+      document.getElementById('demo-output').classList.add('hidden');
+      document.getElementById('demo-loading').classList.remove('hidden');
+
+      setTimeout(() => {
+        const answer = mockAnswers[job][diff];
+        document.getElementById('demo-answer').innerHTML = answer.replace(/\n/g, '<br>');
+        document.getElementById('demo-tag1').textContent = tagSets[job][0];
+        document.getElementById('demo-tag2').textContent = tagSets[job][1];
+
+        document.getElementById('demo-loading').classList.add('hidden');
+        document.getElementById('demo-output').classList.remove('hidden');
+
+        btn.disabled = false;
+        btn.textContent = 'Generate Answer ✨';
+      }, 1500);
+    }
+  </script>
 </body>
 </html>
