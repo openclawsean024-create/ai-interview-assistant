@@ -98,10 +98,11 @@ async function analyzeQuestion(question) {
       type: 'question',
       question,
       answer,
-      sources
+      sources,
+      recognitionLang
     });
 
-    showOverlay(question, answer, sources);
+    showOverlay(question, answer, sources, recognitionLang);
   } catch (error) {
     console.error('AI analysis error:', error);
   }
@@ -123,9 +124,34 @@ function parseSources(text) {
   return sources;
 }
 
-function showOverlay(question, answer, sources) {
+// Text-to-Speech: speak answer aloud
+function speakAnswer(text, lang = 'zh-TW') {
+  if (!('speechSynthesis' in window)) return;
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = lang === 'zh-TW' ? 'zh-TW' : 'en-US';
+  utterance.rate = 1.0;
+  utterance.pitch = 1.0;
+  // Try to find a natural voice
+  const voices = window.speechSynthesis.getVoices();
+  const preferred = voices.find(v => v.lang.startsWith(lang === 'zh-TW' ? 'zh' : 'en') && v.name.includes('Premium')) ||
+                    voices.find(v => v.lang.startsWith(lang === 'zh-TW' ? 'zh' : 'en'));
+  if (preferred) utterance.voice = preferred;
+  window.speechSynthesis.speak(utterance);
+}
+
+function stopSpeaking() {
+  if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+}
+
+function showOverlay(question, answer, sources, recognitionLang = 'en-US') {
   const existing = document.getElementById('ai-interview-overlay');
-  if (existing) existing.remove();
+  if (existing) {
+    existing.remove();
+    stopSpeaking();
+  }
+
+  const ttsLang = recognitionLang.startsWith('zh') ? 'zh-TW' : 'en-US';
 
   const overlay = document.createElement('div');
   overlay.id = 'ai-interview-overlay';
@@ -137,6 +163,9 @@ function showOverlay(question, answer, sources) {
       #ai-interview-overlay::-webkit-scrollbar-thumb { background: rgba(102,126,234,0.4); border-radius: 3px; }
       #ai-interview-overlay .question { color: #667eea; font-weight: 600; font-size: 14px; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.1); cursor: default; }
       #ai-interview-overlay .answer { color: #fff; font-size: 14px; line-height: 1.6; margin-bottom: 12px; white-space: pre-wrap; cursor: default; }
+      #ai-interview-overlay .tts-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 20px; color: #fff; font-size: 12px; cursor: pointer; margin-bottom: 12px; transition: all 0.3s; }
+      #ai-interview-overlay .tts-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 15px rgba(102,126,234,0.4); }
+      #ai-interview-overlay .tts-btn.speaking { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
       #ai-interview-overlay .sources { padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.1); }
       #ai-interview-overlay .sources-title { font-size: 11px; color: #666; margin-bottom: 8px; }
       #ai-interview-overlay a { display: block; font-size: 12px; color: #4a9eff; text-decoration: none; margin: 4px 0; cursor: pointer; }
@@ -146,8 +175,9 @@ function showOverlay(question, answer, sources) {
       #ai-interview-overlay .drag-hint { font-size: 10px; color: #555; text-align: center; margin-bottom: 8px; }
     </style>
     <div class="drag-hint">⋮⋮ 拖曳移動</div>
-    <button class="close-btn" onclick="this.parentElement.remove()" aria-label="關閉">×</button>
+    <button class="close-btn" onclick="this.parentElement.remove(); window.stopSpeakingAudio && window.stopSpeakingAudio();" aria-label="關閉">×</button>
     <div class="question">問題: ${question}</div>
+    <button class="tts-btn" id="ttsBtn">🔊 朗讀答案</button>
     <div class="answer">${answer.replace(/答案:|參考資料:/g, '').split('參考資料')[0]}</div>
     ${sources?.length ? `<div class="sources"><div class="sources-title">📚 參考資料:</div>${sources.map(s => `<a href="${s.url}" target="_blank" rel="noopener noreferrer">${s.title}</a>`).join('')}</div>` : ''}
   `;
@@ -155,7 +185,7 @@ function showOverlay(question, answer, sources) {
   // Drag functionality
   let isDragging = false, startX, startY, startLeft, startBottom;
   overlay.addEventListener('mousedown', (e) => {
-    if (e.target.classList.contains('close-btn') || e.target.tagName === 'A') return;
+    if (e.target.classList.contains('close-btn') || e.target.tagName === 'A' || e.target.id === 'ttsBtn') return;
     isDragging = true;
     startX = e.clientX;
     startY = e.clientY;
@@ -177,5 +207,39 @@ function showOverlay(question, answer, sources) {
   document.addEventListener('mouseup', () => { isDragging = false; });
 
   document.body.appendChild(overlay);
-  setTimeout(() => overlay.remove(), 60000);
+
+  // TTS button logic
+  const ttsBtn = document.getElementById('ttsBtn');
+  let isSpeaking = false;
+
+  const answerText = answer.replace(/答案:|參考資料:/g, '').split('參考資料')[0].trim();
+
+  window.stopSpeakingAudio = () => {
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    if (ttsBtn) { ttsBtn.classList.remove('speaking'); ttsBtn.textContent = '🔊 朗讀答案'; }
+    isSpeaking = false;
+  };
+
+  ttsBtn.addEventListener('click', () => {
+    if (isSpeaking) {
+      window.stopSpeakingAudio();
+    } else {
+      isSpeaking = true;
+      ttsBtn.classList.add('speaking');
+      ttsBtn.textContent = '⏹️ 停止朗讀';
+      speakAnswer(answerText, ttsLang);
+      window.speechSynthesis.onend = () => {
+        isSpeaking = false;
+        if (ttsBtn) { ttsBtn.classList.remove('speaking'); ttsBtn.textContent = '🔊 朗讀答案'; }
+      };
+    }
+  });
+
+  // Auto-remove after 90 seconds
+  setTimeout(() => {
+    if (document.getElementById('ai-interview-overlay')) {
+      overlay.remove();
+      stopSpeaking();
+    }
+  }, 90000);
 }

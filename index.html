@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Interview Assistant - 你的面試奪分神器</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%); color: #fff; min-height: 100vh; }
+    .container { max-width: 900px; margin: 0 auto; padding: 40px 20px; }
+    .header { text-align: center; margin-bottom: 60px; }
+    .logo { width: 80px; height: 80px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 40px; margin: 0 auto 20px; }
+    h1 { font-size: 42px; font-weight: 700; margin-bottom: 16px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .subtitle { font-size: 20px; color: #888; max-width: 600px; margin: 0 auto; line-height: 1.6; }
+    .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px; margin-bottom: 60px; }
+    .feature { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 28px; transition: all 0.3s; }
+    .feature:hover { transform: translateY(-4px); box-shadow: 0 10px 40px rgba(102,126,234,0.2); }
+    .feature-icon { font-size: 36px; margin-bottom: 16px; }
+    .feature h3 { font-size: 18px; margin-bottom: 10px; color: #667eea; }
+    .feature p { font-size: 14px; color: #aaa; line-height: 1.6; }
+    .cta { text-align: center; margin-bottom: 60px; }
+    .btn { display: inline-block; padding: 16px 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; text-decoration: none; border-radius: 12px; font-size: 18px; font-weight: 600; transition: all 0.3s; }
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(102,126,234,0.4); }
+    .screenshots { display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; margin-bottom: 60px; }
+    .screenshot { background: rgba(255,255,255,0.05); border-radius: 12px; padding: 20px; flex: 1; min-width: 280px; max-width: 400px; }
+    .screenshot h4 { font-size: 14px; color: #667eea; margin-bottom: 10px; text-align: center; }
+    .platforms { text-align: center; margin-bottom: 40px; }
+    .platforms p { font-size: 14px; color: #666; margin-bottom: 16px; }
+    .platform-list { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+    .platform-item { background: rgba(255,255,255,0.08); padding: 10px 20px; border-radius: 8px; font-size: 14px; }
+    .footer { text-align: center; padding-top: 40px; border-top: 1px solid rgba(255,255,255,0.1); font-size: 14px; color: #555; }
+    .version { margin-top: 8px; font-size: 12px; color: #444; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="logo">🤖</div>
+      <h1>AI Interview Assistant</h1>
+      <p class="subtitle">即時 AI 面試答題助手 - 在 Zoom、Teams、Meet 面試中即時聆聽問題、生成專業答案、語音朗讀</p>
+    </div>
+
+    <div class="features">
+      <div class="feature">
+        <div class="feature-icon">🎤</div>
+        <h3>智能語音聆聽</h3>
+        <p>自動偵測麥克風，即時聆聽面試官的英文或中文提問，無需手動輸入</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">⚡</div>
+        <h3>AI 即時答題</h3>
+        <p>基於 GPT-4o / Gemini / Claude 分析問題，生成專業、面試官最想聽的答案</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">🔊</div>
+        <h3>語音朗讀</h3>
+        <p>一鍵朗讀 AI 答案，不再只是看文字，邊聽邊背，面試更從容</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">📚</div>
+        <h3>參考資料</h3>
+        <p>自動整理相關技術文檔和文章連結，方便深入準備類似問題</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">📝</div>
+        <h3>問答歷史</h3>
+        <p>記錄所有問答內容，支援匯出 transcript，方便面試後複盤</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">🔒</div>
+        <h3>隱私優先</h3>
+        <p>所有資料僅存本地瀏覽器，API Key 自己管，資料不經過第三方伺服器</p>
+      </div>
+    </div>
+
+    <div class="screenshots">
+      <div class="screenshot">
+        <h4>🎯 浮動答案卡</h4>
+        <p style="color:#aaa;font-size:13px;line-height:1.6;">面試時右下角浮現專業答案，支援拖曳位置，90秒後自動消失</p>
+      </div>
+      <div class="screenshot">
+        <h4>⚙️ 直覺操作介面</h4>
+        <p style="color:#aaa;font-size:13px;line-height:1.6;">一鍵開始聆聽，選擇 AI 模型和語言，查看歷史問答記錄</p>
+      </div>
+    </div>
+
+    <div class="platforms">
+      <p>支援平台</p>
+      <div class="platform-list">
+        <span class="platform-item">📹 Zoom</span>
+        <span class="platform-item">💬 Microsoft Teams</span>
+        <span class="platform-item">📅 Google Meet</span>
+        <span class="platform-item">💼 Webex</span>
+        <span class="platform-item">💬 Slack</span>
+      </div>
+    </div>
+
+    <div class="cta">
+      <a href="https://github.com/openclawsean024-create/ai-interview-assistant" class="btn" target="_blank">📦 GitHub 原始碼</a>
+    </div>
+
+    <div class="footer">
+      AI Interview Assistant · OpenClaw 生態系
+      <div class="version">v1.2 with TTS Support</div>
+    </div>
+  </div>
+</body>
+</html>
