@@ -2,6 +2,13 @@
 
 Real-time AI-powered interview assistant for Zoom, Teams, Meet, Webex, and Slack. Converts the Chrome extension into a deployable web app.
 
+## 🚀 Live Demo
+
+**Vercel URL**: https://ai-interview-assistant-sand-five.vercel.app
+
+> ⚠️ **Important**: Vercel deployment protection must be disabled for the app to be publicly accessible.
+> Go to **Vercel Dashboard → Project → Settings → Deployment Protection → Disable "Vercel Authentication"**
+
 ## Features
 
 - 🎤 **Voice Recognition** — Speak your interview question, AI listens automatically
@@ -11,17 +18,7 @@ Real-time AI-powered interview assistant for Zoom, Teams, Meet, Webex, and Slack
 - 📊 **Usage Dashboard** — Track your interview practice history
 - 🔑 **BYOK** — Bring your own OpenAI API key (we never subsidize)
 
-## Architecture
-
-```
-Next.js 14 (App Router)
-├── Clerk Authentication (auth middleware)
-├── Tailwind CSS (styling)
-├── OpenAI API (proxy via /api/analyze)
-└── Vercel (deployment)
-```
-
-## Getting Started
+## Setup
 
 ### 1. Clone & Install
 
@@ -34,18 +31,13 @@ npm install
 1. Create an account at [clerk.com](https://clerk.com)
 2. Create a new application (choose your auth method)
 3. Copy your Publishable Key and Secret Key
-4. Create `.env.local`:
-
-```bash
-cp .env.local.example .env.local
-# Then fill in your Clerk keys:
-# NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
-# CLERK_SECRET_KEY=sk_test_...
-# NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
-# NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
-# NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/dashboard
-# NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/dashboard
-```
+4. Copy `.env.local.example` to `.env.local` and fill in your keys:
+   ```bash
+   cp .env.local.example .env.local
+   # Then fill in:
+   # NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
+   # CLERK_SECRET_KEY=sk_test_...
+   ```
 
 ### 3. Run Locally
 
@@ -66,10 +58,16 @@ Visit `http://localhost:3000`
 ### 5. Deploy to Vercel
 
 ```bash
-npx vercel --prod
+npx vercel --prod --public
 ```
 
-Set the same environment variables in Vercel Dashboard → Settings → Environment Variables.
+> ⚠️ **Vercel Deployment Protection**: After deploying, go to **Vercel Dashboard → Project → Settings → Deployment Protection** and disable "Vercel Authentication" to make the app publicly accessible.
+
+Set environment variables in Vercel Dashboard → Project → Settings → Environment Variables:
+| Variable | Description |
+|----------|-------------|
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk Publishable Key |
+| `CLERK_SECRET_KEY` | Clerk Secret Key |
 
 ## Pages
 
@@ -82,6 +80,18 @@ Set the same environment variables in Vercel Dashboard → Settings → Environm
 | `/dashboard` | Usage stats & history | Yes |
 | `/interview` | Core interview practice | Yes |
 | `/settings` | API key management | Yes |
+
+## Architecture
+
+```
+Next.js 14 (App Router)
+├── Clerk v5 (authentication)
+├── Tailwind CSS (styling)
+├── Web Speech API (voice recognition + TTS)
+├── OpenAI GPT-4o (via server-side proxy)
+├── localStorage (user-provided API key + usage history)
+└── Vercel (deployment)
+```
 
 ## Pricing Tiers
 
@@ -102,9 +112,6 @@ npm run build
 
 # Start production server
 npm start
-
-# Lint
-npm run lint
 ```
 
 ## Environment Variables
