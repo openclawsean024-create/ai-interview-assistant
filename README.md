@@ -1,49 +1,123 @@
 # AI Interview Assistant
 
-> 即時 AI 面試答題助手 - 在 Zoom、Teams、Meet 面試中即時聆聽問題、生成專業答案、語音朗讀
+Real-time AI-powered interview assistant for Zoom, Teams, Meet, Webex, and Slack. Converts the Chrome extension into a deployable web app.
 
-**🦕 Live Demo (Landing Page):** https://ai-interview-assistant-mamutfhxm-seans-projects-7dc76219.vercel.app
+## Features
 
-## 功能
+- 🎤 **Voice Recognition** — Speak your interview question, AI listens automatically
+- ⚡ **Instant AI Answers** — GPT-4o powered answer suggestions in 2-3 seconds
+- 📚 **Reference Materials** — Auto-sourced technical docs and articles
+- 🔊 **Text-to-Speech** — Read answers aloud to maintain eye contact
+- 📊 **Usage Dashboard** — Track your interview practice history
+- 🔑 **BYOK** — Bring your own OpenAI API key (we never subsidize)
 
-- 🎤 **智能語音聆聽** - 自動偵測並轉錄面試問題（支援英文/中文）
-- ⚡ **AI 即時答題** - GPT-4o / Gemini / Claude 3.5 Sonnet 生成專業答案
-- 🔊 **語音朗讀 (TTS)** - 一鍵朗讀 AI 答案，邊聽邊背
-- 📚 **參考資料** - 自動整理相關技術連結
-- 📝 **問答歷史** - 本地儲存，支援匯出 transcript
-- 🔒 **隱私優先** - 所有資料僅存本地瀏覽器
+## Architecture
 
-## 支援平台
+```
+Next.js 14 (App Router)
+├── Clerk Authentication (auth middleware)
+├── Tailwind CSS (styling)
+├── OpenAI API (proxy via /api/analyze)
+└── Vercel (deployment)
+```
 
-- Zoom
-- Microsoft Teams
-- Google Meet
-- Webex
-- Slack
+## Getting Started
 
-## 安裝 (Chrome Extension)
+### 1. Clone & Install
 
-1. Clone 此專案
-2. 開啟 Chrome，進入 `chrome://extensions/`
-3. 開啟「開發者模式」
-4. 點「載入未封裝項目」
-5. 選擇此專案資料夾
+```bash
+npm install
+```
 
-## 設定
+### 2. Set up Clerk Authentication
 
-1. 點擊擴充套件 icon
-2. 點「⚙️ 設定 API Key」
-3. 輸入 OpenAI / Google / Anthropic API Key
+1. Create an account at [clerk.com](https://clerk.com)
+2. Create a new application (choose your auth method)
+3. Copy your Publishable Key and Secret Key
+4. Create `.env.local`:
 
-## 快捷鍵
+```bash
+cp .env.local.example .env.local
+# Then fill in your Clerk keys:
+# NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
+# CLERK_SECRET_KEY=sk_test_...
+# NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
+# NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
+# NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/dashboard
+# NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/dashboard
+```
 
-| 快捷鍵 | 功能 |
-|--------|------|
-| Ctrl+Shift+A | 開始/停止聆聽 |
-| Ctrl+Shift+S | 取得答案 |
+### 3. Run Locally
 
-## 版本
+```bash
+npm run dev
+```
 
-- v1.2 - 加入 TTS 語音朗讀功能
-- v1.1 - 多平台支援、浮動答案卡
-- v1.0 - 初始版本
+Visit `http://localhost:3000`
+
+### 4. Set Your API Key
+
+1. Sign up / Sign in
+2. Go to Settings
+3. Enter your OpenAI API key from [platform.openai.com/api-keys](https://platform.openai.com/api-keys)
+
+> ⚠️ You must bring your own OpenAI API key. We do not subsidize any API costs.
+
+### 5. Deploy to Vercel
+
+```bash
+npx vercel --prod
+```
+
+Set the same environment variables in Vercel Dashboard → Settings → Environment Variables.
+
+## Pages
+
+| Route | Description | Auth Required |
+|-------|-------------|---------------|
+| `/` | Landing page | No |
+| `/pricing` | Pricing plans | No |
+| `/sign-in` | Sign in | No |
+| `/sign-up` | Sign up | No |
+| `/dashboard` | Usage stats & history | Yes |
+| `/interview` | Core interview practice | Yes |
+| `/settings` | API key management | Yes |
+
+## Pricing Tiers
+
+| Feature | Free | Pro ($9/mo) | Business ($29/mo) |
+|---------|------|-------------|-------------------|
+| Voice recognition | ✓ | ✓ | ✓ |
+| AI answer suggestions | ✓ | ✓ | ✓ |
+| History limit | 20 | 200 | Unlimited |
+| Languages | EN | EN/ZH/JP/KR | All |
+| Export reports | — | ✓ | ✓ |
+| Team sharing | — | — | ✓ |
+
+## Development
+
+```bash
+# Build for production
+npm run build
+
+# Start production server
+npm start
+
+# Lint
+npm run lint
+```
+
+## Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk publishable key |
+| `CLERK_SECRET_KEY` | Clerk secret key |
+| `NEXT_PUBLIC_CLERK_SIGN_IN_URL` | Sign in page URL |
+| `NEXT_PUBLIC_CLERK_SIGN_UP_URL` | Sign up page URL |
+| `NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL` | Redirect after sign in |
+| `NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL` | Redirect after sign up |
+
+## License
+
+MIT
