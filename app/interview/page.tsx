@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useUser } from '@clerk/nextjs';
+import { useAuth } from '@/components/auth-provider';
 import Link from 'next/link';
 import { useState, useEffect, useRef, useCallback } from 'react';
 
@@ -37,7 +37,7 @@ const SYSTEM_PROMPT = `你是專業的面試助手，擅長技術面試。請根
 提示: [下一句可以怎麼接]`;
 
 export default function InterviewPage() {
-  const { user, isSignedIn, isLoaded } = useUser();
+  const { user, isSignedIn, isLoaded } = useAuth();
   const [question, setQuestion] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [currentAnswer, setCurrentAnswer] = useState('');

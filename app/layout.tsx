@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import ClerkLoader from '@/components/clerk-provider';
+import { AuthProvider } from '@/components/auth-provider';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -9,10 +9,10 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <ClerkLoader>
+    <AuthProvider>
       <html lang="zh-TW">
         <body>{children}</body>
       </html>
-    </ClerkLoader>
+    </AuthProvider>
   );
 }

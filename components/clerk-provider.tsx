@@ -3,21 +3,18 @@
 import { ClerkProvider as ClerkReactProvider } from '@clerk/clerk-react';
 import { useState, useEffect } from 'react';
 
+// Fallback publishable key for when env var is not set
+const FALLBACK_KEY = 'pk_test_placeholder';
+
 export default function ClerkLoader({ children }: { children: React.ReactNode }) {
-  const [clerkKey, setClerkKey] = useState<string | null>(null);
+  const [clerkKey, setClerkKey] = useState<string>(FALLBACK_KEY);
 
   useEffect(() => {
-    setClerkKey(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || '');
+    const envKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+    if (envKey && envKey.startsWith('pk_') && !envKey.includes('xxxx')) {
+      setClerkKey(envKey);
+    }
   }, []);
-
-  if (!clerkKey) {
-    return <>{children}</>;
-  }
-
-  if (!clerkKey.startsWith('pk_') || clerkKey.includes('xxxx')) {
-    // Invalid or placeholder key - render without auth
-    return <>{children}</>;
-  }
 
   return (
     <ClerkReactProvider publishableKey={clerkKey}>

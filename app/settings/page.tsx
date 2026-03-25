@@ -2,12 +2,12 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useUser } from '@clerk/nextjs';
+import { useAuth } from '@/components/auth-provider';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 
 export default function SettingsPage() {
-  const { user, isSignedIn, isLoaded } = useUser();
+  const { user, isSignedIn, isLoaded } = useAuth();
   const [apiKey, setApiKey] = useState('');
   const [saved, setSaved] = useState(false);
   const [testStatus, setTestStatus] = useState('');

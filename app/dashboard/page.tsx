@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useUser } from '@clerk/nextjs';
+import { useAuth } from '@/components/auth-provider';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 
@@ -19,7 +19,7 @@ interface UsageStats {
 }
 
 export default function DashboardPage() {
-  const { user, isSignedIn, isLoaded } = useUser();
+  const { user, isSignedIn, isLoaded } = useAuth();
   const [stats, setStats] = useState<UsageStats>({
     totalQuestions: 0,
     totalAnswers: 0,
@@ -74,7 +74,7 @@ export default function DashboardPage() {
       <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '40px 40px' }}>
         <div style={{ marginBottom: '32px' }}>
           <h1 style={{ fontSize: '28px', fontWeight: 700, color: 'white', marginBottom: '4px' }}>
-            你好，{user?.firstName || user?.emailAddresses[0]?.emailAddress?.split('@')[0] || '用戶'} 👋
+            你好，{user?.firstName || user?.emailAddresses[0]?.email?.split('@')[0] || '用戶'} 👋
           </h1>
           <p style={{ color: '#888', fontSize: '14px' }}>以下是您的 AI 面試助手使用概覽</p>
         </div>
