@@ -1,40 +1,130 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/pages/api-reference/create-next-app).
+# AI Interview Assistant
 
-## Getting Started
+Real-time AI-powered interview assistant for Zoom, Teams, Meet, Webex, and Slack. Converts the Chrome extension into a deployable web app.
 
-First, run the development server:
+## 🚀 Live Demo
+
+**Vercel URL**: https://ai-interview-assistant-sand-five.vercel.app
+
+> ⚠️ **Important**: Vercel deployment protection must be disabled for the app to be publicly accessible.
+> Go to **Vercel Dashboard → Project → Settings → Deployment Protection → Disable "Vercel Authentication"**
+
+## Features
+
+- 🎤 **Voice Recognition** — Speak your interview question, AI listens automatically
+- ⚡ **Instant AI Answers** — GPT-4o powered answer suggestions in 2-3 seconds
+- 📚 **Reference Materials** — Auto-sourced technical docs and articles
+- 🔊 **Text-to-Speech** — Read answers aloud to maintain eye contact
+- 📊 **Usage Dashboard** — Track your interview practice history
+- 🔑 **BYOK** — Bring your own OpenAI API key (we never subsidize)
+
+## Setup
+
+### 1. Clone & Install
+
+```bash
+npm install
+```
+
+### 2. Set up Clerk Authentication
+
+1. Create an account at [clerk.com](https://clerk.com)
+2. Create a new application (choose your auth method)
+3. Copy your Publishable Key and Secret Key
+4. Copy `.env.local.example` to `.env.local` and fill in your keys:
+   ```bash
+   cp .env.local.example .env.local
+   # Then fill in:
+   # NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
+   # CLERK_SECRET_KEY=sk_test_...
+   ```
+
+### 3. Run Locally
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Visit `http://localhost:3000`
 
-You can start editing the page by modifying `pages/index.tsx`. The page auto-updates as you edit the file.
+### 4. Set Your API Key
 
-[API routes](https://nextjs.org/docs/pages/building-your-application/routing/api-routes) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.ts`.
+1. Sign up / Sign in
+2. Go to Settings
+3. Enter your OpenAI API key from [platform.openai.com/api-keys](https://platform.openai.com/api-keys)
 
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/pages/building-your-application/routing/api-routes) instead of React pages.
+> ⚠️ You must bring your own OpenAI API key. We do not subsidize any API costs.
 
-This project uses [`next/font`](https://nextjs.org/docs/pages/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 5. Deploy to Vercel
 
-## Learn More
+```bash
+npx vercel --prod --public
+```
 
-To learn more about Next.js, take a look at the following resources:
+> ⚠️ **Vercel Deployment Protection**: After deploying, go to **Vercel Dashboard → Project → Settings → Deployment Protection** and disable "Vercel Authentication" to make the app publicly accessible.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn-pages-router) - an interactive Next.js tutorial.
+Set environment variables in Vercel Dashboard → Project → Settings → Environment Variables:
+| Variable | Description |
+|----------|-------------|
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk Publishable Key |
+| `CLERK_SECRET_KEY` | Clerk Secret Key |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Pages
 
-## Deploy on Vercel
+| Route | Description | Auth Required |
+|-------|-------------|---------------|
+| `/` | Landing page | No |
+| `/pricing` | Pricing plans | No |
+| `/sign-in` | Sign in | No |
+| `/sign-up` | Sign up | No |
+| `/dashboard` | Usage stats & history | Yes |
+| `/interview` | Core interview practice | Yes |
+| `/settings` | API key management | Yes |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Architecture
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/pages/building-your-application/deploying) for more details.
+```
+Next.js 14 (App Router)
+├── Clerk v5 (authentication)
+├── Tailwind CSS (styling)
+├── Web Speech API (voice recognition + TTS)
+├── OpenAI GPT-4o (via server-side proxy)
+├── localStorage (user-provided API key + usage history)
+└── Vercel (deployment)
+```
+
+## Pricing Tiers
+
+| Feature | Free | Pro ($9/mo) | Business ($29/mo) |
+|---------|------|-------------|-------------------|
+| Voice recognition | ✓ | ✓ | ✓ |
+| AI answer suggestions | ✓ | ✓ | ✓ |
+| History limit | 20 | 200 | Unlimited |
+| Languages | EN | EN/ZH/JP/KR | All |
+| Export reports | — | ✓ | ✓ |
+| Team sharing | — | — | ✓ |
+
+## Development
+
+```bash
+# Build for production
+npm run build
+
+# Start production server
+npm start
+```
+
+## Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk publishable key |
+| `CLERK_SECRET_KEY` | Clerk secret key |
+| `NEXT_PUBLIC_CLERK_SIGN_IN_URL` | Sign in page URL |
+| `NEXT_PUBLIC_CLERK_SIGN_UP_URL` | Sign up page URL |
+| `NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL` | Redirect after sign in |
+| `NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL` | Redirect after sign up |
+
+## License
+
+MIT
