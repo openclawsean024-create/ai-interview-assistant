@@ -2,11 +2,11 @@
   "/_not-found/page": "app/_not-found/page.js",
   "/api/analyze/route": "app/api/analyze/route.js",
   "/api/test-key/route": "app/api/test-key/route.js",
-  "/dashboard/page": "app/dashboard/page.js",
-  "/interview/page": "app/interview/page.js",
   "/page": "app/page.js",
-  "/pricing/page": "app/pricing/page.js",
-  "/settings/page": "app/settings/page.js",
   "/sign-in/[[...sign-in]]/page": "app/sign-in/[[...sign-in]]/page.js",
-  "/sign-up/[[...sign-up]]/page": "app/sign-up/[[...sign-up]]/page.js"
+  "/sign-up/[[...sign-up]]/page": "app/sign-up/[[...sign-up]]/page.js",
+  "/pricing/page": "app/pricing/page.js",
+  "/dashboard/page": "app/dashboard/page.js",
+  "/settings/page": "app/settings/page.js",
+  "/interview/page": "app/interview/page.js"
 }
