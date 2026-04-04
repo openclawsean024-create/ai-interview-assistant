@@ -4,7 +4,7 @@ Real-time AI-powered interview assistant for Zoom, Teams, Meet, Webex, and Slack
 
 ## 🚀 Live Demo
 
-**Vercel URL**: https://ai-interview-assistant-sand-five.vercel.app
+**Vercel URL**: https://ai-interview-assistant-eosin.vercel.app
 
 > ⚠️ **Important**: Vercel deployment protection must be disabled for the app to be publicly accessible.
 > Go to **Vercel Dashboard → Project → Settings → Deployment Protection → Disable "Vercel Authentication"**
