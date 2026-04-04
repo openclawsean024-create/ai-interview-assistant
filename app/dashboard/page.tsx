@@ -3,6 +3,8 @@
 export const dynamic = 'force-dynamic';
 
 import { useAuth } from '@/components/auth-provider';
+import { useLocale } from '@/app/i18n/locale-context';
+import { LanguageSwitcher } from '@/app/components/language-switcher';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 
@@ -20,6 +22,7 @@ interface UsageStats {
 
 export default function DashboardPage() {
   const { user, isSignedIn, isLoaded } = useAuth();
+  const { t, locale } = useLocale();
   const [stats, setStats] = useState<UsageStats>({
     totalQuestions: 0,
     totalAnswers: 0,
@@ -39,58 +42,62 @@ export default function DashboardPage() {
 
   if (!isLoaded) {
     return (
-      <div style={{ minHeight: '100vh', background: '#0f0f1a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ color: '#667eea', fontSize: '18px' }}>載入中...</div>
+      <div style={{ minHeight: '100vh', background: '#09090B', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ color: '#818CF8', fontSize: '14px' }}>{t.dashboard.loading}</div>
       </div>
     );
   }
 
   if (!isSignedIn) {
     return (
-      <div style={{ minHeight: '100vh', background: '#0f0f1a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '16px' }}>
-        <p style={{ color: '#888' }}>請先登入</p>
+      <div style={{ minHeight: '100vh', background: '#09090B', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '16px' }}>
+        <div style={{ fontSize: '48px' }}>🔒</div>
+        <p style={{ color: '#52525B', fontSize: '14px' }}>{t.dashboard.loginRequired}</p>
         <Link href="/sign-in">
-          <button className="btn-brand">前往登入</button>
+          <button className="btn-brand">{t.dashboard.goToSignIn}</button>
         </Link>
       </div>
     );
   }
 
+  const displayName = user?.firstName || user?.emailAddresses?.[0]?.email?.split('@')[0] || 'User';
+
   return (
-    <div style={{ minHeight: '100vh', background: '#0f0f1a' }}>
+    <div style={{ minHeight: '100vh', background: '#09090B' }}>
       {/* Nav */}
-      <nav style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 60px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-        <Link href="/" style={{ fontSize: '20px', fontWeight: 700, color: 'white' }}>
+      <nav style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 48px', borderBottom: '1px solid rgba(63,63,70,0.4)' }}>
+        <Link href="/" style={{ fontSize: '20px', fontWeight: 700, color: '#FAFAFA' }}>
           <span className="gradient-text">AI Interview</span>
         </Link>
         <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
-          <Link href="/dashboard" style={{ color: '#667eea', fontSize: '14px' }}>儀表板</Link>
-          <Link href="/interview" style={{ color: '#aaa', fontSize: '14px' }}>面試</Link>
-          <Link href="/pricing" style={{ color: '#aaa', fontSize: '14px' }}>定價</Link>
-          <Link href="/settings" style={{ color: '#aaa', fontSize: '14px' }}>設定</Link>
+          <LanguageSwitcher />
+          <Link href="/dashboard" style={{ color: '#818CF8', fontSize: '14px', fontWeight: 600 }}>{t.nav.dashboard}</Link>
+          <Link href="/interview" style={{ color: '#A1A1AA', fontSize: '14px' }}>{t.nav.interview}</Link>
+          <Link href="/pricing" style={{ color: '#A1A1AA', fontSize: '14px' }}>{t.nav.pricing}</Link>
+          <Link href="/settings" style={{ color: '#A1A1AA', fontSize: '14px' }}>{t.nav.settings}</Link>
         </div>
       </nav>
 
       <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '40px 40px' }}>
         <div style={{ marginBottom: '32px' }}>
-          <h1 style={{ fontSize: '28px', fontWeight: 700, color: 'white', marginBottom: '4px' }}>
-            你好，{user?.firstName || user?.emailAddresses[0]?.email?.split('@')[0] || '用戶'} 👋
+          <h1 style={{ fontSize: '28px', fontWeight: 700, color: '#FAFAFA', marginBottom: '4px' }}>
+            {t.dashboard.greeting(displayName)}
           </h1>
-          <p style={{ color: '#888', fontSize: '14px' }}>以下是您的 AI 面試助手使用概覽</p>
+          <p style={{ color: '#52525B', fontSize: '14px' }}>{t.dashboard.subtitle}</p>
         </div>
 
         {/* Stats Grid */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '40px' }}>
           {[
-            { label: '總問題數', value: stats.totalQuestions, icon: '🎤' },
-            { label: '今日使用次數', value: stats.sessionsToday, icon: '📅' },
-            { label: '本月 API 呼叫', value: stats.apiCallsThisMonth, icon: '⚡' },
-            { label: '歷史問答', value: stats.history.length, icon: '📊' },
+            { label: t.dashboard.stats.totalQuestions, value: stats.totalQuestions, icon: '🎤' },
+            { label: t.dashboard.stats.sessionsToday, value: stats.sessionsToday, icon: '📅' },
+            { label: t.dashboard.stats.apiCallsThisMonth, value: stats.apiCallsThisMonth, icon: '⚡' },
+            { label: t.dashboard.stats.historyCount, value: stats.history.length, icon: '📊' },
           ].map((s) => (
             <div key={s.label} className="card" style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '28px', marginBottom: '8px' }}>{s.icon}</div>
-              <div style={{ fontSize: '32px', fontWeight: 700, color: 'white' }}>{s.value}</div>
-              <div style={{ color: '#888', fontSize: '13px' }}>{s.label}</div>
+              <div className="stat-number" style={{ fontSize: '36px', fontWeight: 800 }}>{s.value}</div>
+              <div style={{ color: '#52525B', fontSize: '13px', marginTop: '4px' }}>{s.label}</div>
             </div>
           ))}
         </div>
@@ -98,32 +105,36 @@ export default function DashboardPage() {
         {/* Quick Actions */}
         <div style={{ display: 'flex', gap: '16px', marginBottom: '40px', flexWrap: 'wrap' }}>
           <Link href="/interview">
-            <button className="btn-brand">🎤 開始面試練習</button>
+            <button className="btn-brand">{t.dashboard.startInterview}</button>
           </Link>
           <Link href="/settings">
-            <button className="btn-outline" style={{ padding: '12px 28px' }}>API Key 設定</button>
+            <button className="btn-outline" style={{ padding: '12px 28px' }}>{t.dashboard.apiKeySettings}</button>
           </Link>
         </div>
 
         {/* Recent History */}
         <div className="card">
-          <h2 style={{ fontSize: '18px', fontWeight: 600, color: 'white', marginBottom: '20px' }}>最近問答記錄</h2>
+          <h2 style={{ fontSize: '16px', fontWeight: 600, color: '#FAFAFA', marginBottom: '20px', letterSpacing: '0.01em' }}>
+            {t.dashboard.recentHistory}
+          </h2>
           {stats.history.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '40px', color: '#555' }}>
+            <div style={{ textAlign: 'center', padding: '40px', color: '#52525B' }}>
               <div style={{ fontSize: '40px', marginBottom: '12px' }}>📭</div>
-              <p>尚無問答記錄</p>
-              <p style={{ fontSize: '13px', marginTop: '4px' }}>開始面試練習後會顯示在這裡</p>
+              <p style={{ color: '#52525B', fontSize: '14px' }}>{t.dashboard.noHistory}</p>
+              <p style={{ fontSize: '13px', marginTop: '4px', color: '#3F3F46' }}>{t.dashboard.noHistorySub}</p>
               <Link href="/interview">
-                <button className="btn-brand" style={{ marginTop: '20px', padding: '10px 24px' }}>開始練習</button>
+                <button className="btn-brand" style={{ marginTop: '20px', padding: '10px 24px' }}>{t.dashboard.startPractice}</button>
               </Link>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {stats.history.slice(0, 8).map((item, i) => (
-                <div key={i} style={{ padding: '16px', background: 'rgba(255,255,255,0.03)', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                  <div style={{ fontSize: '13px', color: '#667eea', marginBottom: '6px' }}>Q: {item.question}</div>
-                  <div style={{ fontSize: '13px', color: '#aaa', lineHeight: 1.5 }}>A: {item.answer.slice(0, 150)}{item.answer.length > 150 ? '...' : ''}</div>
-                  <div style={{ fontSize: '11px', color: '#555', marginTop: '6px' }}>{new Date(item.createdAt).toLocaleString('zh-TW')}</div>
+                <div key={i} style={{ padding: '16px', background: 'rgba(255,255,255,0.02)', borderRadius: '10px', border: '1px solid rgba(63,63,70,0.3)' }}>
+                  <div style={{ fontSize: '13px', color: '#818CF8', marginBottom: '6px' }}>Q: {item.question}</div>
+                  <div style={{ fontSize: '13px', color: '#71717A', lineHeight: 1.5 }}>A: {item.answer.slice(0, 150)}{item.answer.length > 150 ? '...' : ''}</div>
+                  <div style={{ fontSize: '11px', color: '#3F3F46', marginTop: '6px' }}>
+                    {new Date(item.createdAt).toLocaleString(locale === 'en' ? 'en-US' : 'zh-TW')}
+                  </div>
                 </div>
               ))}
             </div>

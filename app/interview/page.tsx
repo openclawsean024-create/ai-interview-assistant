@@ -3,6 +3,8 @@
 export const dynamic = 'force-dynamic';
 
 import { useAuth } from '@/components/auth-provider';
+import { useLocale } from '@/app/i18n/locale-context';
+import { LanguageSwitcher } from '@/app/components/language-switcher';
 import Link from 'next/link';
 import { useState, useEffect, useRef, useCallback } from 'react';
 
@@ -21,7 +23,7 @@ interface UsageStats {
   history: Message[];
 }
 
-const SYSTEM_PROMPT = `你是專業的面試助手，擅長技術面試。請根據以下面試問題，提供：
+const SYSTEM_PROMPT_ZH = `你是專業的面試助手，擅長技術面試。請根據以下面試問題，提供：
 1. 一個專業的答案建議（2-3句話，重點清晰）
 2. 3個相關的參考資料連結（真實的技術文檔或文章）
 3. 一個簡短的 follow-up 提醒（告訴面試者下一句可以怎麼接）
@@ -36,8 +38,24 @@ const SYSTEM_PROMPT = `你是專業的面試助手，擅長技術面試。請根
 ---
 提示: [下一句可以怎麼接]`;
 
+const SYSTEM_PROMPT_EN = `You are a professional interview assistant, specializing in technical interviews. Based on the interview question below, provide:
+1. A professional answer suggestion (2-3 sentences, clear and concise)
+2. 3 related reference links (real technical documentation or articles)
+3. A brief follow-up reminder (how the candidate can continue)
+
+Answer format:
+Answer: [your suggested answer]
+---
+References:
+1. [Title] [URL]
+2. [Title] [URL]
+3. [Title] [URL]
+---
+Tip: [how to follow up]`;
+
 export default function InterviewPage() {
   const { user, isSignedIn, isLoaded } = useAuth();
+  const { locale, t } = useLocale();
   const [question, setQuestion] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [currentAnswer, setCurrentAnswer] = useState('');
@@ -45,12 +63,19 @@ export default function InterviewPage() {
   const [history, setHistory] = useState<Message[]>([]);
   const [recognitionLang, setRecognitionLang] = useState('en-US');
   const [isListening, setIsListening] = useState(false);
-  const [status, setStatus] = useState('準備就緒');
+  const [status, setStatus] = useState('');
   const [apiKey, setApiKey] = useState('');
   const [apiKeyConfigured, setApiKeyConfigured] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const recognitionRef = useRef<any>(null);
   const audioContextRef = useRef<any>(null);
+
+  const isEnglish = locale === 'en';
+
+  // Initialize status text
+  useEffect(() => {
+    setStatus(t.interview.status.ready);
+  }, [t]);
 
   // Load API key and history
   useEffect(() => {
@@ -66,7 +91,7 @@ export default function InterviewPage() {
         setHistory(stats.history || []);
       }
     }
-  }, [isSignedIn, user?.id]);
+  }, [isSignedIn, user?.id, t]);
 
   // Save history to localStorage
   const saveHistory = useCallback((newHistory: Message[]) => {
@@ -87,13 +112,15 @@ export default function InterviewPage() {
   // Analyze question via API
   async function analyzeQuestion(q: string) {
     if (!apiKey) {
-      setStatus('請先設定 API Key');
+      setStatus(t.interview.status.noApiKey);
       return;
     }
     setIsAnalyzing(true);
-    setStatus('AI 分析中...');
+    setStatus(t.interview.status.analyzing);
     setCurrentAnswer('');
     setCurrentSources([]);
+
+    const systemPrompt = isEnglish ? SYSTEM_PROMPT_EN : SYSTEM_PROMPT_ZH;
 
     try {
       const response = await fetch('/api/analyze', {
@@ -103,7 +130,7 @@ export default function InterviewPage() {
           question: q,
           apiKey,
           model: 'gpt-4o',
-          systemPrompt: SYSTEM_PROMPT,
+          systemPrompt,
         }),
       });
 
@@ -118,14 +145,14 @@ export default function InterviewPage() {
 
       setCurrentAnswer(answer);
       setCurrentSources(sources);
-      setStatus('準備就緒');
+      setStatus(t.interview.status.ready);
 
       const newMsg: Message = { question: q, answer, sources, createdAt: new Date().toISOString() };
       const newHistory = [newMsg, ...history].slice(0, 20);
       setHistory(newHistory);
       saveHistory(newHistory);
     } catch (error: any) {
-      setStatus(`錯誤: ${error.message}`);
+      setStatus(`${t.interview.status.apiError}: ${error.message}`);
     } finally {
       setIsAnalyzing(false);
     }
@@ -139,7 +166,7 @@ export default function InterviewPage() {
       const url = line.match(urlRegex)?.[0];
       if (url && sources.length < 3) {
         sources.push({
-          title: line.replace(url, '').replace(/^\d+\.\s*/, '').trim() || '參考資料',
+          title: line.replace(url, '').replace(/^\d+\.\s*/, '').trim() || 'Reference',
           url,
         });
       }
@@ -151,7 +178,7 @@ export default function InterviewPage() {
   function startListening(lang: string) {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      alert('您的瀏覽器不支援語音辨識，請使用 Chrome 或 Edge');
+      alert(t.interview.status.noBrowserSupport);
       return;
     }
 
@@ -177,7 +204,7 @@ export default function InterviewPage() {
       recognition.onerror = (e: any) => {
         console.error('Speech recognition error:', e);
         if (e.error === 'not-allowed') {
-          setStatus('麥克風權限被拒絕');
+          setStatus(t.interview.status.micDenied);
         }
         setIsListening(false);
       };
@@ -188,9 +215,9 @@ export default function InterviewPage() {
 
       recognition.start();
       setIsListening(true);
-      setStatus('正在聆聽...');
+      setStatus(t.interview.status.listening);
     }).catch(() => {
-      alert('無法取得麥克風權限，請檢查瀏覽器設定');
+      alert(t.interview.status.noMic);
     });
   }
 
@@ -204,14 +231,14 @@ export default function InterviewPage() {
       audioContextRef.current = null;
     }
     setIsListening(false);
-    setStatus('準備就緒');
+    setStatus(t.interview.status.ready);
   }
 
   // TTS
   function speakAnswer(text: string) {
     if (!('speechSynthesis' in window)) return;
     window.speechSynthesis.cancel();
-    const clean = text.replace(/答案:|參考資料:|提示:/g, '').split('參考資料')[0].trim();
+    const clean = text.replace(/答案:|Answer:|參考資料:|References:|提示:|Tip:/g, '').split(isEnglish ? 'References' : '參考資料')[0].trim();
     const utterance = new SpeechSynthesisUtterance(clean);
     utterance.lang = recognitionLang.startsWith('zh') ? 'zh-TW' : 'en-US';
     utterance.rate = 1.0;
@@ -227,60 +254,78 @@ export default function InterviewPage() {
 
   function handleKeySetup() {
     if (!isSignedIn) {
-      alert('請先登入');
+      alert(isEnglish ? 'Please sign in first' : '請先登入');
       return;
     }
-    const key = prompt('請輸入你的 OpenAI API Key:', apiKey || '');
+    const key = prompt(t.interview.enterApiKeyPrompt, apiKey || '');
     if (key) {
       setApiKey(key);
       setApiKeyConfigured(true);
       localStorage.setItem(`apikey_${user?.id}`, key);
-      alert('API Key 已儲存！');
+      alert(t.interview.apiKeySaved);
     }
   }
 
+  const getStatusDotClass = () => {
+    if (isListening) return 'status-dot status-dot-listening';
+    if (isAnalyzing) return 'status-dot status-dot-analyzing';
+    return 'status-dot status-dot-ready';
+  };
+
+  const answerSections = currentAnswer ? currentAnswer.split('---') : [];
+  const mainAnswer = answerSections[0]
+    ?.replace(isEnglish ? 'Answer:' : '答案:', '')
+    .trim() || '';
+  const followUpHint = currentAnswer
+    ? (isEnglish
+        ? currentAnswer.match(/Tip:\s*([\s\S]*?)$/)?.[1]?.trim()
+        : currentAnswer.match(/提示:\s*([\s\S]*?)$/)?.[1]?.trim())
+    : null;
+
   if (!isLoaded) {
     return (
-      <div className="min-h-screen bg-[#0f0f1a] flex items-center justify-center">
-        <div className="text-[#667eea] animate-pulse">載入中...</div>
+      <div className="min-h-screen bg-[#09090B] flex items-center justify-center">
+        <div className="text-indigo-400 animate-pulse text-sm">{t.interview.loading}</div>
       </div>
     );
   }
 
   if (!isSignedIn) {
     return (
-      <div className="min-h-screen bg-[#0f0f1a] flex flex-col items-center justify-center gap-4">
-        <p className="text-[#888]">請先登入以使用面試功能</p>
+      <div className="min-h-screen bg-[#09090B] flex flex-col items-center justify-center gap-4">
+        <div className="text-5xl mb-2">🔒</div>
+        <p className="text-zinc-500 text-sm">{t.interview.loginRequired}</p>
         <Link href="/sign-in">
-          <button className="btn-brand">前往登入</button>
+          <button className="btn-brand">{t.interview.goToSignIn}</button>
         </Link>
       </div>
     );
   }
 
-  const answerSections = currentAnswer ? currentAnswer.split('---') : [];
-  const mainAnswer = answerSections[0]?.replace('答案:', '').trim() || '';
-  const followUpHint = currentAnswer?.includes('提示:') ? currentAnswer.split('提示:')[1]?.trim() : null;
+  const placeholder = isEnglish
+    ? t.interview.placeholder.question
+    : t.interview.placeholder.questionZh;
 
   return (
-    <div className="min-h-screen bg-[#0f0f1a]">
+    <div className="min-h-screen bg-[#09090B]">
       {/* Nav */}
-      <nav className="flex justify-between items-center px-4 md:px-12 lg:px-16 py-4 border-b border-white/5">
-        <Link href="/" className="text-xl font-bold text-white">
+      <nav className="relative z-10 flex justify-between items-center px-6 md:px-12 lg:px-20 py-4 border-b border-zinc-800/50">
+        <Link href="/" className="text-xl font-bold tracking-tight text-zinc-50">
           <span className="gradient-text">AI Interview</span>
         </Link>
 
         {/* Desktop nav */}
         <div className="hidden md:flex gap-6 items-center">
-          <Link href="/dashboard" className="text-[#aaa] text-sm hover:text-white transition-colors">儀表板</Link>
-          <Link href="/interview" className="text-[#667eea] text-sm font-medium">面試</Link>
-          <Link href="/pricing" className="text-[#aaa] text-sm hover:text-white transition-colors">定價</Link>
-          <Link href="/settings" className="text-[#aaa] text-sm hover:text-white transition-colors">設定</Link>
+          <LanguageSwitcher />
+          <Link href="/dashboard" className="nav-link">{t.nav.dashboard}</Link>
+          <Link href="/interview" className="nav-link nav-link-active">{t.nav.interview}</Link>
+          <Link href="/pricing" className="nav-link">{t.nav.pricing}</Link>
+          <Link href="/settings" className="nav-link">{t.nav.settings}</Link>
         </div>
 
         {/* Mobile menu button */}
         <button
-          className="md:hidden text-[#aaa] p-2"
+          className="md:hidden text-zinc-400 p-2"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
         >
           {mobileMenuOpen ? '✕' : '☰'}
@@ -289,28 +334,34 @@ export default function InterviewPage() {
 
       {/* Mobile menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden flex flex-col gap-3 px-4 py-4 border-b border-white/5 bg-[#0f0f1a]">
-          <Link href="/dashboard" className="text-[#aaa] text-sm" onClick={() => setMobileMenuOpen(false)}>儀表板</Link>
-          <Link href="/interview" className="text-[#667eea] text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>面試</Link>
-          <Link href="/pricing" className="text-[#aaa] text-sm" onClick={() => setMobileMenuOpen(false)}>定價</Link>
-          <Link href="/settings" className="text-[#aaa] text-sm" onClick={() => setMobileMenuOpen(false)}>設定</Link>
+        <div className="md:hidden flex flex-col gap-3 px-6 py-4 border-b border-zinc-800/50 bg-[#09090B]">
+          <LanguageSwitcher />
+          <Link href="/dashboard" className="nav-link" onClick={() => setMobileMenuOpen(false)}>{t.nav.dashboard}</Link>
+          <Link href="/interview" className="nav-link nav-link-active" onClick={() => setMobileMenuOpen(false)}>{t.nav.interview}</Link>
+          <Link href="/pricing" className="nav-link" onClick={() => setMobileMenuOpen(false)}>{t.nav.pricing}</Link>
+          <Link href="/settings" className="nav-link" onClick={() => setMobileMenuOpen(false)}>{t.nav.settings}</Link>
         </div>
       )}
 
-      <div className="max-w-6xl mx-auto px-4 md:px-8 lg:px-12 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6">
+      <div className="max-w-6xl mx-auto px-6 md:px-8 lg:px-12 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6">
 
           {/* Main Panel */}
-          <div>
-            <h1 className="text-2xl font-bold text-white mb-2">🎤 AI 面試練習</h1>
-            <p className="text-[#666] text-sm mb-6">
-              輸入或語音說出面試問題，AI 即時分析並提供答案建議
+          <div className="animate-fade-in-up">
+            <div className="flex items-center gap-3 mb-1">
+              <h1 className="text-2xl font-bold text-zinc-50 tracking-tight">{t.interview.title}</h1>
+            </div>
+            <p className="text-zinc-500 text-sm mb-6">
+              {t.interview.subtitle}
             </p>
 
             {/* Status bar */}
-            <div className="flex items-center gap-3 mb-5 px-4 py-3 bg-white/3 rounded-xl">
-              <div className={`w-2.5 h-2.5 rounded-full ${isListening ? 'bg-red-500 animate-pulse' : 'bg-green-500'}`}></div>
-              <span className="text-[#aaa] text-sm">{status}</span>
+            <div className="flex items-center gap-3 mb-5 px-4 py-3 bg-zinc-900/70 rounded-xl border border-zinc-800/60">
+              <div className={getStatusDotClass()} />
+              <span className="text-zinc-400 text-sm font-medium">{status}</span>
+              {isListening && (
+                <span className="ml-auto text-red-400 text-xs animate-pulse">● REC</span>
+              )}
             </div>
 
             {/* Input form */}
@@ -320,8 +371,8 @@ export default function InterviewPage() {
                   type="text"
                   value={question}
                   onChange={(e) => setQuestion(e.target.value)}
-                  placeholder="輸入面試問題，例如：Explain the difference between var, let, and const"
-                  className="input-field flex-1"
+                  placeholder={placeholder}
+                  className="input-field flex-1 text-sm"
                   disabled={isAnalyzing}
                 />
                 <button
@@ -329,7 +380,7 @@ export default function InterviewPage() {
                   className="btn-brand whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={isAnalyzing || !question.trim()}
                 >
-                  {isAnalyzing ? '分析中...' : '分析'}
+                  {isAnalyzing ? t.interview.analyzing : t.interview.analyze}
                 </button>
               </div>
             </form>
@@ -339,7 +390,7 @@ export default function InterviewPage() {
               <select
                 value={recognitionLang}
                 onChange={(e) => setRecognitionLang(e.target.value)}
-                className="input-field w-auto min-w-[120px]"
+                className="input-field w-auto min-w-[130px] text-sm"
               >
                 <option value="en-US">🇺🇸 English</option>
                 <option value="zh-TW">🇹🇼 中文</option>
@@ -351,16 +402,16 @@ export default function InterviewPage() {
               {isListening ? (
                 <button
                   onClick={stopListening}
-                  className="px-5 py-2.5 rounded-xl font-semibold text-white bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-red-500/25"
+                  className="px-5 py-2.5 rounded-xl font-semibold text-sm text-white bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-red-500/25"
                 >
-                  ⏹ 停止聆聽
+                  {t.interview.stopListening}
                 </button>
               ) : (
                 <button
                   onClick={() => startListening(recognitionLang)}
                   className="btn-brand"
                 >
-                  🎤 語音聆聽
+                  {t.interview.startListening}
                 </button>
               )}
 
@@ -368,87 +419,89 @@ export default function InterviewPage() {
                 onClick={handleKeySetup}
                 className={`px-5 py-2.5 rounded-xl font-semibold text-sm transition-all border ${
                   apiKeyConfigured
-                    ? 'bg-green-500/10 border-green-500/30 text-green-400'
+                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
                     : 'bg-white/5 border-white/10 text-red-400 hover:bg-red-500/10'
                 }`}
               >
-                🔑 {apiKeyConfigured ? 'API Key 已設定' : '設定 API Key'}
+                🔑 {apiKeyConfigured ? t.interview.apiKeySet : t.interview.apiKeyNotSet}
               </button>
             </div>
 
             {/* Answer Display */}
-            <div className="card min-h-[320px]">
+            <div className="card min-h-[300px]">
               {isAnalyzing ? (
                 <div className="flex flex-col items-center justify-center py-16 gap-4">
-                  <div className="relative w-16 h-16">
-                    <div className="absolute inset-0 rounded-full border-2 border-[#667eea]/20"></div>
-                    <div className="absolute inset-0 rounded-full border-2 border-t-[#667eea] animate-spin"></div>
+                  <div className="relative w-14 h-14">
+                    <div className="absolute inset-0 rounded-full border-2 border-indigo-500/20" />
+                    <div className="absolute inset-0 rounded-full border-2 border-t-indigo-500 animate-spin" />
+                    <div className="absolute inset-2 rounded-full border-2 border-r-purple-500/30 animate-spin-slow" />
                   </div>
-                  <p className="text-[#667eea] text-base font-medium animate-pulse">AI 分析中...</p>
-                  <p className="text-[#555] text-xs">使用你的 API Key，預計 2-3 秒</p>
+                  <p className="text-indigo-400 text-sm font-medium">{t.interview.status.analyzing}</p>
+                  <p className="text-zinc-600 text-xs">{isEnglish ? 'Using your API key, ~2-3 seconds' : '使用你的 API Key，預計 2-3 秒'}</p>
                 </div>
               ) : currentAnswer ? (
-                <div className="space-y-4">
+                <div className="space-y-5 animate-fade-in-up">
                   {question && (
                     <div>
-                      <div className="text-xs text-[#667eea] font-semibold mb-1.5">📝 問題：</div>
-                      <div className="text-[#ccc] text-sm leading-relaxed">{question}</div>
+                      <div className="answer-tab mb-2">{t.interview.questionLabel}</div>
+                      <div className="text-zinc-300 text-sm leading-relaxed ml-0.5">{question}</div>
                     </div>
                   )}
-                  <div className="border-t border-white/10 pt-4">
-                    <div className="text-xs text-[#667eea] font-semibold mb-2">🤖 AI 答案建議：</div>
-                    <div className="text-[#e0e0e0] text-sm leading-relaxed whitespace-pre-wrap">
+                  <div className="border-t border-zinc-800 pt-5">
+                    <div className="answer-tab mb-3">{t.interview.answerLabel}</div>
+                    <div className="answer-prose bg-[#09090B] rounded-lg p-5 border border-zinc-800/60">
                       {mainAnswer}
                     </div>
                   </div>
                   <button
                     onClick={() => speakAnswer(currentAnswer)}
-                    className="btn-brand text-sm px-4 py-2"
+                    className="btn-outline text-sm px-4 py-2"
                   >
-                    🔊 朗讀答案
+                    {t.interview.readAnswer}
                   </button>
 
                   {currentSources.length > 0 && (
-                    <div className="border-t border-white/10 pt-3">
-                      <div className="text-xs text-[#666] mb-2">📚 參考資料：</div>
+                    <div className="border-t border-zinc-800 pt-4">
+                      <div className="answer-tab mb-2">{t.interview.referencesLabel}</div>
                       {currentSources.map((s, i) => (
                         <a
                           key={i}
                           href={s.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="block text-[#4a9eff] text-xs mb-1.5 hover:underline truncate"
+                          className="flex items-center gap-2 text-indigo-400 text-xs mb-2 hover:text-indigo-300 transition-colors group"
                         >
-                          • {s.title}
+                          <span className="text-zinc-600 group-hover:text-indigo-400">→</span>
+                          <span className="truncate">{s.title}</span>
                         </a>
                       ))}
                     </div>
                   )}
 
                   {followUpHint && (
-                    <div className="mt-3 p-3 bg-[#667eea]/8 rounded-lg">
-                      <div className="text-xs text-[#667eea] font-semibold mb-1">💡 Follow-up 提示：</div>
-                      <div className="text-[#aaa] text-xs">{followUpHint}</div>
+                    <div className="mt-2 p-4 bg-amber-500/5 rounded-xl border border-amber-500/15">
+                      <div className="answer-tab mb-2 bg-amber-500/10 text-amber-400">{t.interview.followUpLabel}</div>
+                      <div className="text-zinc-400 text-sm leading-relaxed">{followUpHint}</div>
                     </div>
                   )}
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
-                  <span className="text-5xl">🎯</span>
-                  <p className="text-[#555] text-sm">輸入問題或點擊語音按鈕開始</p>
-                  <p className="text-[#444] text-xs">支援 Zoom, Teams, Meet 等所有主流視訊平台</p>
+                  <div className="text-5xl mb-1">{t.interview.emptyTitle}</div>
+                  <p className="text-zinc-500 text-sm">{t.interview.emptyText}</p>
+                  <p className="text-zinc-600 text-xs">{t.interview.emptySubtext}</p>
                 </div>
               )}
             </div>
           </div>
 
           {/* Sidebar: History */}
-          <div>
-            <h2 className="text-base font-semibold text-white mb-4">最近問答</h2>
+          <div className="animate-fade-in-up stagger-2">
+            <h2 className="text-sm font-semibold text-zinc-300 mb-4 tracking-wide uppercase text-xs">{t.interview.historyTitle}</h2>
             {history.length === 0 ? (
-              <div className="text-center py-12 text-[#444] text-sm">
+              <div className="text-center py-12 text-zinc-600 text-sm">
                 <div className="text-3xl mb-2">📭</div>
-                尚無記錄
+                <div>{t.interview.noHistory}</div>
               </div>
             ) : (
               <div className="flex flex-col gap-2">
@@ -460,11 +513,13 @@ export default function InterviewPage() {
                       setCurrentAnswer(h.answer);
                       setCurrentSources(h.sources);
                     }}
-                    className="text-left p-3 bg-[#1a1a2e]/60 border border-white/5 rounded-xl hover:border-[#667eea]/30 transition-colors"
+                    className="text-left p-3 bg-zinc-900/60 border border-zinc-800/50 rounded-xl hover:border-indigo-500/30 transition-all group"
                   >
-                    <div className="text-xs text-[#667eea] mb-1 truncate">Q: {h.question.slice(0, 50)}{h.question.length > 50 ? '...' : ''}</div>
-                    <div className="text-[10px] text-[#555]">
-                      {new Date(h.createdAt).toLocaleString('zh-TW', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    <div className="text-xs text-indigo-400/80 mb-1 truncate font-medium group-hover:text-indigo-300">
+                      Q: {h.question.slice(0, 55)}{h.question.length > 55 ? '...' : ''}
+                    </div>
+                    <div className="text-[10px] text-zinc-600">
+                      {new Date(h.createdAt).toLocaleString(isEnglish ? 'en-US' : 'zh-TW', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     </div>
                   </button>
                 ))}
@@ -488,9 +543,9 @@ export default function InterviewPage() {
                   a.download = 'interview-history.txt';
                   a.click();
                 }}
-                className="mt-4 w-full py-2.5 bg-white/5 border border-white/10 rounded-xl text-[#aaa] text-xs hover:bg-white/10 transition-colors"
+                className="mt-4 w-full py-2.5 bg-zinc-800/50 border border-zinc-700/40 rounded-xl text-zinc-400 text-xs hover:bg-zinc-800 hover:text-zinc-200 transition-all"
               >
-                📥 匯出歷史記錄
+                {t.interview.exportHistory}
               </button>
             )}
           </div>
