@@ -39,6 +39,16 @@ export const translations = {
     footer: {
       copyright: '© 2024 — Built with Next.js + OpenAI',
     },
+    signIn: {
+      subtitle: '登入以開始使用 AI 面試助手',
+      description: '輸入你的帳戶資訊',
+      demoNote: '點擊上方按鈕快速登入（演示模式）',
+    },
+    signUp: {
+      subtitle: '建立帳戶開始使用 AI 面試助手',
+      description: '建立新帳戶開始使用',
+      demoNote: '點擊上方按鈕快速註冊（演示模式）',
+    },
     interview: {
       title: '🎤 AI 面試練習',
       subtitle: '輸入或語音說出面試問題，AI 即時分析並提供答案建議',
@@ -174,6 +184,16 @@ export const translations = {
     },
     footer: {
       copyright: '© 2024 — Built with Next.js + OpenAI',
+    },
+    signIn: {
+      subtitle: 'Sign in to start using AI Interview Assistant',
+      description: 'Enter your credentials to access your account',
+      demoNote: 'Click above to sign in quickly (demo mode)',
+    },
+    signUp: {
+      subtitle: 'Create an account to start using AI Interview Assistant',
+      description: 'Create your new account',
+      demoNote: 'Click above to sign up quickly (demo mode)',
     },
     interview: {
       title: '🎤 AI Interview Practice',

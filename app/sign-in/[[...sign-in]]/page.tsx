@@ -1,12 +1,14 @@
 'use client';
 
 import { useAuth } from '@/components/auth-provider';
+import { useLocale } from '@/app/i18n/locale-context';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
 export default function SignInPage() {
   const { isSignedIn, signIn, isLoaded } = useAuth();
+  const { t } = useLocale();
   const router = useRouter();
 
   useEffect(() => {
@@ -21,26 +23,27 @@ export default function SignInPage() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0f0f1a' }}>
-      <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: '24px', fontWeight: 700, marginBottom: '32px' }}>
-          <span className="gradient-text">AI Interview</span> Assistant
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#09090B' }}>
+      {/* Background glow */}
+      <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '600px', height: '600px', background: 'radial-gradient(circle, rgba(99,102,241,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
+      <div style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
+        <div style={{ fontSize: '28px', fontWeight: 800, marginBottom: '12px', letterSpacing: '-0.02em' }}>
+          <span className="gradient-text">AI Interview</span> <span style={{ color: '#71717A' }}>Assistant</span>
         </div>
-        <div className="card" style={{ minWidth: '320px', textAlign: 'left' }}>
-          <h2 style={{ color: 'white', fontSize: '20px', marginBottom: '24px', fontWeight: 700 }}>登入</h2>
-          <p style={{ color: '#888', fontSize: '14px', marginBottom: '24px' }}>
-            輸入你的資訊開始使用
-          </p>
-          <button onClick={handleSignIn} className="btn-brand" style={{ width: '100%', marginBottom: '16px' }}>
-            登入 / 註冊
+        <p style={{ color: '#52525B', fontSize: '14px', marginBottom: '40px' }}>{t.signIn?.subtitle || 'Sign in to start practicing'}</p>
+        <div className="card" style={{ minWidth: '360px', textAlign: 'left', border: '1px solid rgba(99,102,241,0.2)' }}>
+          <h2 style={{ color: '#FAFAFA', fontSize: '22px', marginBottom: '8px', fontWeight: 700 }}>{t.nav.signIn}</h2>
+          <p style={{ color: '#71717A', fontSize: '14px', marginBottom: '28px' }}>{t.signIn?.description || 'Enter your credentials to access your account'}</p>
+          <button onClick={handleSignIn} className="btn-brand" style={{ width: '100%', padding: '14px', fontSize: '15px' }}>
+            {t.nav.signIn} / {t.nav.signUp}
           </button>
-          <p style={{ color: '#555', fontSize: '12px', textAlign: 'center' }}>
-            點擊上方按鈕即可快速登入（演示模式）
+          <p style={{ color: '#52525B', fontSize: '12px', textAlign: 'center', marginTop: '16px' }}>
+            {t.signIn?.demoNote || 'Click above to sign in quickly (demo mode)'}
           </p>
         </div>
         <div style={{ marginTop: '24px' }}>
-          <Link href="/" style={{ color: '#667eea', fontSize: '14px' }}>
-            ← 返回首頁
+          <Link href="/" style={{ color: '#818CF8', fontSize: '14px', fontWeight: 500 }}>
+            ← {t.nav.home || 'Back to Home'}
           </Link>
         </div>
       </div>
