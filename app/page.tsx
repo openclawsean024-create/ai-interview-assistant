@@ -23,26 +23,24 @@ export default function LandingPage() {
             <button className="btn-brand text-sm px-5 py-2">開始使用</button>
           </Link>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
+          <Link href="/sign-in" className="text-sm text-zinc-400 hover:text-white transition-colors hidden sm:block">登入</Link>
+          <Link href="/sign-up" className="btn-brand text-sm px-5 py-2">開始使用</Link>
           <LanguageSwitcher />
-          <Link href="/sign-up" className="md:hidden">
-            <button className="btn-brand text-xs px-4 py-2">開始</button>
-          </Link>
         </div>
       </nav>
 
       {/* Hero */}
       <section className="relative z-10 text-center px-6 py-20 md:py-28 lg:py-32 max-w-5xl mx-auto">
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-indigo-500/20 bg-indigo-500/8 text-indigo-400 text-xs font-semibold tracking-widest mb-6 animate-fade-in-up">
-          面試表現 → 提升一個檔次
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-zinc-700 bg-zinc-800/80 text-zinc-400 text-xs font-medium tracking-wide mb-6">
+          ✦ 商業級 AI 面試助手
         </div>
         <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold leading-[1.08] tracking-tight mb-6 text-zinc-50 animate-fade-in-up stagger-1">
-          任何面試問題<br />
-          <span className="gradient-text">即時 AI 答案建議</span>
+          面試時的<br />
+          <span className="gradient-text">秘密武器</span>
         </h1>
-        <p className="text-base md:text-lg text-zinc-500 max-w-xl mx-auto mb-10 leading-relaxed animate-fade-in-up stagger-2">
-          在 Zoom、Teams、Google Meet 進行遠端面試時，AI 即時聆聽問題，
-          分析並在側邊欄顯示專業答案建議與參考資料。
+        <p className="text-base md:text-lg text-zinc-400 max-w-xl mx-auto mb-10 leading-relaxed animate-fade-in-up stagger-2">
+          Zoom、Teams、Google Meet 面試時，AI 即時分析問題，提供專業答案建議與權威參考資料。
         </p>
         <div className="flex gap-4 justify-center flex-wrap animate-fade-in-up stagger-3">
           <Link href="/sign-up">
@@ -94,10 +92,10 @@ export default function LandingPage() {
       {/* Trust bar */}
       <section className="relative z-10 border-y border-zinc-800/50 py-6 px-6">
         <div className="max-w-4xl mx-auto flex flex-wrap justify-center gap-8 text-zinc-600 text-sm">
-          <span className="flex items-center gap-2">✅ 已幫助 10,000+ 求職者</span>
-          <span className="flex items-center gap-2">🎯 2-3 秒生成答案</span>
-          <span className="flex items-center gap-2">🔒 資料完全保密</span>
-          <span className="flex items-center gap-2">🌐 支援 Zoom / Teams / Meet</span>
+          <span className="flex items-center gap-2 text-zinc-500">✓ 10,000+ 求職者驗證</span>
+          <span className="flex items-center gap-2 text-zinc-500">✓ 2-3 秒生成答案</span>
+          <span className="flex items-center gap-2 text-zinc-500">✓ 企業級資料保密</span>
+          <span className="flex items-center gap-2 text-zinc-500">✓ Zoom / Teams / Meet</span>
         </div>
       </section>
 
@@ -128,8 +126,8 @@ export default function LandingPage() {
       {/* CTA */}
       <section className="relative z-10 px-6 py-20 text-center">
         <div className="max-w-2xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-bold text-zinc-50 mb-4 tracking-tight">開始提升你的面試表現</h2>
-          <p className="text-zinc-500 mb-10 text-sm">免費方案即可使用核心功能，Pro 方案解鎖更多語言和導出報告</p>
+          <h2 className="text-3xl md:text-4xl font-bold text-zinc-50 mb-4 tracking-tight">立即提升面試表現</h2>
+          <p className="text-zinc-500 mb-10 text-sm">免費方案即可使用核心功能，Pro 方案解鎖多語言與報告導出</p>
           <Link href="/sign-up">
             <button className="btn-brand px-10 py-4 shadow-glow">免費開始</button>
           </Link>
@@ -137,9 +135,16 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="relative z-10 border-t border-zinc-800/50 px-6 py-10 text-center">
-        <div className="text-zinc-700 text-xs">
-          AI Interview Assistant © 2024 — Built with Next.js + OpenAI
+      <footer className="relative z-10 border-t border-zinc-800/50 px-6 py-10">
+        <div className="max-w-5xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
+          <div className="text-zinc-600 text-xs">
+            AI Interview Assistant © 2024 — Built with Next.js + OpenAI
+          </div>
+          <div className="flex gap-6 text-xs text-zinc-600">
+            <a href="https://github.com/openclawsean024-create/ai-interview-assistant" target="_blank" rel="noopener" className="hover:text-zinc-400 transition-colors">GitHub</a>
+            <a href="https://openclawsean024-create.github.io/ai-interview-assistant/" target="_blank" rel="noopener" className="hover:text-zinc-400 transition-colors">GitHub Pages</a>
+            <a href="https://ai-interview-assistant-ldh0dtbwj-seans-projects-7dc76219.vercel.app" target="_blank" rel="noopener" className="hover:text-zinc-400 transition-colors">Vercel</a>
+          </div>
         </div>
       </footer>
     </div>
