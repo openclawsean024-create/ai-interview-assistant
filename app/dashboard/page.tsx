@@ -43,7 +43,7 @@ export default function DashboardPage() {
   if (!isLoaded) {
     return (
       <div style={{ minHeight: '100vh', background: '#09090B', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ color: '#818CF8', fontSize: '14px' }}>{t.dashboard.loading}</div>
+        <div style={{ color: '#60A5FA', fontSize: '14px' }}>{t.dashboard.loading}</div>
       </div>
     );
   }
@@ -71,7 +71,7 @@ export default function DashboardPage() {
         </Link>
         <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
           <LanguageSwitcher />
-          <Link href="/dashboard" style={{ color: '#818CF8', fontSize: '14px', fontWeight: 600 }}>{t.nav.dashboard}</Link>
+          <Link href="/dashboard" style={{ color: '#60A5FA', fontSize: '14px', fontWeight: 600 }}>{t.nav.dashboard}</Link>
           <Link href="/interview" style={{ color: '#A1A1AA', fontSize: '14px' }}>{t.nav.interview}</Link>
           <Link href="/pricing" style={{ color: '#A1A1AA', fontSize: '14px' }}>{t.nav.pricing}</Link>
           <Link href="/settings" style={{ color: '#A1A1AA', fontSize: '14px' }}>{t.nav.settings}</Link>
@@ -130,7 +130,7 @@ export default function DashboardPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {stats.history.slice(0, 8).map((item, i) => (
                 <div key={i} style={{ padding: '16px', background: 'rgba(255,255,255,0.02)', borderRadius: '10px', border: '1px solid rgba(63,63,70,0.3)' }}>
-                  <div style={{ fontSize: '13px', color: '#818CF8', marginBottom: '6px' }}>Q: {item.question}</div>
+                  <div style={{ fontSize: '13px', color: '#60A5FA', marginBottom: '6px' }}>Q: {item.question}</div>
                   <div style={{ fontSize: '13px', color: '#71717A', lineHeight: 1.5 }}>A: {item.answer.slice(0, 150)}{item.answer.length > 150 ? '...' : ''}</div>
                   <div style={{ fontSize: '11px', color: '#3F3F46', marginTop: '6px' }}>
                     {new Date(item.createdAt).toLocaleString(locale === 'en' ? 'en-US' : 'zh-TW')}

@@ -42,7 +42,7 @@ export default function SignUpPage() {
           </p>
         </div>
         <div style={{ marginTop: '24px' }}>
-          <Link href="/" style={{ color: '#818CF8', fontSize: '14px', fontWeight: 500 }}>
+          <Link href="/" style={{ color: '#60A5FA', fontSize: '14px', fontWeight: 500 }}>
             ← {t.nav.home || 'Back to Home'}
           </Link>
         </div>

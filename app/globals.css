@@ -3,8 +3,8 @@
 @tailwind utilities;
 
 :root {
-  --primary: #6366F1;
-  --primary-dark: #4F46E5;
+  --primary: #2563EB;
+  --primary-dark: #1D4ED8;
   --accent-gold: #F59E0B;
   --accent-emerald: #10B981;
   --danger: #EF4444;
@@ -32,7 +32,7 @@ html, body {
   overflow-x: hidden;
   background: var(--bg);
   color: var(--text-primary);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: 'Inter', 'Noto Sans TC', -apple-system, BlinkMacSystemFont, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -72,7 +72,7 @@ a {
 
 /* Gradient text */
 .gradient-text {
-  background: linear-gradient(135deg, #818CF8 0%, #A78BFA 50%, #C084FC 100%);
+  background: linear-gradient(135deg, #60A5FA 0%, #3B82F6 50%, #2563EB 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -80,12 +80,12 @@ a {
 
 /* Brand gradient */
 .brand-gradient {
-  background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%);
+  background: linear-gradient(135deg, #2563EB 0%, #3B82F6 100%);
 }
 
 /* Glow effects */
 .btn-brand {
-  background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%);
+  background: linear-gradient(135deg, #2563EB 0%, #3B82F6 100%);
   color: white;
   padding: 12px 28px;
   border-radius: 10px;
@@ -94,7 +94,7 @@ a {
   border: none;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 0 0 0 rgba(99, 102, 241, 0);
+  box-shadow: 0 0 0 0 rgba(37, 99, 235, 0);
   position: relative;
   overflow: hidden;
 }
@@ -110,7 +110,7 @@ a {
 
 .btn-brand:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.35);
+  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.35);
 }
 
 .btn-brand:hover::before {
@@ -129,8 +129,8 @@ a {
 }
 
 .btn-outline {
-  border: 1.5px solid rgba(99, 102, 241, 0.6);
-  color: #818CF8;
+  border: 1.5px solid rgba(37, 99, 235, 0.6);
+  color: #60A5FA;
   padding: 10px 26px;
   border-radius: 10px;
   font-weight: 600;
@@ -141,8 +141,8 @@ a {
 }
 
 .btn-outline:hover {
-  background: rgba(99, 102, 241, 0.1);
-  border-color: #818CF8;
+  background: rgba(37, 99, 235, 0.1);
+  border-color: #60A5FA;
   transform: translateY(-1px);
 }
 
@@ -185,7 +185,7 @@ a {
 }
 
 .input-field:focus {
-  border-color: #6366F1;
+  border-color: #2563EB;
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
 }
 
@@ -267,8 +267,8 @@ a {
   border-radius: 6px;
   font-size: 11px;
   font-weight: 600;
-  background: rgba(99, 102, 241, 0.12);
-  color: #818CF8;
+  background: rgba(37, 99, 235, 0.12);
+  color: #60A5FA;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -310,7 +310,7 @@ a {
 }
 
 .nav-link-active {
-  color: #818CF8;
+  color: #60A5FA;
   font-weight: 600;
 }
 
@@ -334,7 +334,88 @@ a {
 }
 
 .status-dot-analyzing {
-  background: #6366F1;
-  box-shadow: 0 0 6px rgba(99, 102, 241, 0.6);
+  background: #2563EB;
+  box-shadow: 0 0 6px rgba(37, 99, 235, 0.6);
   animation: pulse-glow 1s ease-in-out infinite;
+}
+
+/* Skeleton loading */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #18181B 25%, #27272A 50%, #18181B 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 6px;
+}
+
+.skeleton-text {
+  height: 14px;
+  margin-bottom: 8px;
+}
+
+.skeleton-text:last-child {
+  width: 70%;
+}
+
+.skeleton-block {
+  height: 80px;
+}
+
+/* Tech tag clickable */
+.tech-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 500;
+  background: rgba(37, 99, 235, 0.12);
+  color: #60A5FA;
+  border: 1px solid rgba(37, 99, 235, 0.2);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tech-tag:hover {
+  background: rgba(37, 99, 235, 0.2);
+  border-color: rgba(37, 99, 235, 0.4);
+  transform: translateY(-1px);
+}
+
+.tech-tag-expanded {
+  margin-top: 8px;
+  padding: 12px;
+  background: rgba(37, 99, 235, 0.08);
+  border: 1px solid rgba(37, 99, 235, 0.15);
+  border-radius: 10px;
+  font-size: 13px;
+  color: #A1A1AA;
+  line-height: 1.6;
+}
+
+/* Share URL */
+.share-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  background: rgba(245, 158, 11, 0.1);
+  color: #F59E0B;
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.share-btn:hover {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.35);
+  transform: translateY(-1px);
 }

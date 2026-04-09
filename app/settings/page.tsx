@@ -51,7 +51,7 @@ export default function SettingsPage() {
 
   if (!isLoaded) {
     return (
-      <div style={{ minHeight: '100vh', background: '#09090B', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#818CF8' }}>
+      <div style={{ minHeight: '100vh', background: '#09090B', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#60A5FA' }}>
         {t.interview.loading}
       </div>
     );
@@ -79,7 +79,7 @@ export default function SettingsPage() {
           <Link href="/dashboard" style={{ color: '#A1A1AA', fontSize: '14px' }}>{t.nav.dashboard}</Link>
           <Link href="/interview" style={{ color: '#A1A1AA', fontSize: '14px' }}>{t.nav.interview}</Link>
           <Link href="/pricing" style={{ color: '#A1A1AA', fontSize: '14px' }}>{t.nav.pricing}</Link>
-          <Link href="/settings" style={{ color: '#818CF8', fontSize: '14px', fontWeight: 600 }}>{t.nav.settings}</Link>
+          <Link href="/settings" style={{ color: '#60A5FA', fontSize: '14px', fontWeight: 600 }}>{t.nav.settings}</Link>
         </div>
       </nav>
 
@@ -92,12 +92,12 @@ export default function SettingsPage() {
         </p>
 
         {/* Info box */}
-        <div style={{ padding: '16px', background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '12px', marginBottom: '32px' }}>
+        <div style={{ padding: '16px', background: 'rgba(37,99,235,0.06)', border: '1px solid rgba(37,99,235,0.2)', borderRadius: '12px', marginBottom: '32px' }}>
           <p style={{ color: '#A1A1AA', fontSize: '14px', lineHeight: 1.8 }}>
             💡 <strong style={{ color: '#D4D4D8' }}>
               {isEnglish ? 'How to get an API Key:' : '如何取得 API Key：'}
             </strong><br />
-            1. {isEnglish ? 'Go to' : '前往'} <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener" style={{ color: '#818CF8' }}>platform.openai.com/api-keys</a><br />
+            1. {isEnglish ? 'Go to' : '前往'} <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener" style={{ color: '#60A5FA' }}>platform.openai.com/api-keys</a><br />
             2. {isEnglish ? 'Click Create new secret key' : '點擊 Create new secret key'}<br />
             3. {isEnglish ? 'Copy and paste below' : '複製並貼上到下方輸入框'}<br />
             4. {isEnglish ? 'Costs are your responsibility (GPT-4o ~$0.01/call)' : '費用由你完全自負（GPT-4o 約 $0.01/次）'}
@@ -143,7 +143,7 @@ export default function SettingsPage() {
           </h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {[
-              { name: 'GPT-4o', desc: isEnglish ? 'Fastest, smartest (default)' : '最快、最聰明（預設）', badge: isEnglish ? 'Recommended' : '推薦', badgeColor: 'rgba(99,102,241,0.2)', badgeText: '#818CF8' },
+              { name: 'GPT-4o', desc: isEnglish ? 'Fastest, smartest (default)' : '最快、最聰明（預設）', badge: isEnglish ? 'Recommended' : '推薦', badgeColor: 'rgba(37,99,235,0.2)', badgeText: '#60A5FA' },
               { name: 'GPT-4o-mini', desc: isEnglish ? 'Fast, cost-effective' : '快速、便宜的選項', badge: isEnglish ? 'Save $' : '省錢', badgeColor: 'rgba(16,185,129,0.2)', badgeText: '#10B981' },
               { name: 'GPT-4 Turbo', desc: isEnglish ? 'Full capabilities, slower' : '功能完整，較慢', badge: '', badgeColor: '', badgeText: '' },
               { name: 'GPT-3.5 Turbo', desc: isEnglish ? 'Cheapest, limited capabilities' : '最便宜，能力有限', badge: '', badgeColor: '', badgeText: '' },

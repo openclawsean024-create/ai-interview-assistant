@@ -11,7 +11,7 @@ export function LanguageSwitcher({ className = '' }: { className?: string }) {
         onClick={() => setLocale('zh')}
         className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
           locale === 'zh'
-            ? 'bg-indigo-600 text-white shadow-sm'
+            ? 'bg-blue-600 text-white shadow-sm'
             : 'text-zinc-400 hover:text-zinc-200'
         }`}
       >
@@ -21,7 +21,7 @@ export function LanguageSwitcher({ className = '' }: { className?: string }) {
         onClick={() => setLocale('en')}
         className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
           locale === 'en'
-            ? 'bg-indigo-600 text-white shadow-sm'
+            ? 'bg-blue-600 text-white shadow-sm'
             : 'text-zinc-400 hover:text-zinc-200'
         }`}
       >

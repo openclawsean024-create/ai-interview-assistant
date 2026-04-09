@@ -13,6 +13,7 @@ interface Message {
   answer: string;
   sources: Array<{ title: string; url: string }>;
   createdAt: string;
+  techTags?: string[];
 }
 
 interface UsageStats {
@@ -23,10 +24,34 @@ interface UsageStats {
   history: Message[];
 }
 
+const TECH_TAG_DESCRIPTIONS: Record<string, string> = {
+  'React': 'React is a JavaScript library for building user interfaces, particularly single-page applications. It uses a virtual DOM to efficiently update the actual DOM.',
+  'Virtual DOM': 'The Virtual DOM is a lightweight copy of the actual DOM. React compares the virtual DOM with the real DOM and only updates what changed (reconciliation).',
+  'TypeScript': 'TypeScript is a superset of JavaScript that adds static type definitions, providing better tooling and compile-time error checking.',
+  'Node.js': 'Node.js is a JavaScript runtime built on Chrome\'s V8 engine, designed for building scalable network applications.',
+  'Next.js': 'Next.js is a React framework that enables server-side rendering, static site generation, and other performance optimizations.',
+  'JavaScript': 'JavaScript is a dynamic programming language commonly used for web development, supporting object-oriented, imperative, and functional programming styles.',
+  'CSS': 'CSS (Cascading Style Sheets) is a style sheet language used for describing the presentation of HTML documents.',
+  'HTML': 'HTML (HyperText Markup Language) is the standard markup language for creating web pages.',
+  'API': 'API (Application Programming Interface) is a set of protocols and tools for building software applications and enabling communication between different systems.',
+  'GraphQL': 'GraphQL is a query language for APIs that allows clients to request exactly the data they need.',
+  'MongoDB': 'MongoDB is a NoSQL document database that stores data in flexible, JSON-like documents.',
+  'PostgreSQL': 'PostgreSQL is a powerful, open source object-relational database system known for reliability and performance.',
+  'Docker': 'Docker is a platform for developing, shipping, and running applications in containers — lightweight, standalone executable packages.',
+  'AWS': 'AWS (Amazon Web Services) is a comprehensive cloud computing platform offering infrastructure and services.',
+  'Git': 'Git is a distributed version control system for tracking changes in source code during software development.',
+  'Vue': 'Vue.js is a progressive JavaScript framework for building user interfaces, designed to be incrementally adoptable.',
+  'Angular': 'Angular is a TypeScript-based web application framework led by the Angular Team at Google.',
+  'Redux': 'Redux is a predictable state container for JavaScript apps, commonly used with React for managing application state.',
+  'Tailwind': 'Tailwind CSS is a utility-first CSS framework for rapidly building custom user interfaces.',
+  'REST': 'REST (Representational State Transfer) is an architectural style for designing networked applications.',
+};
+
 const SYSTEM_PROMPT_ZH = `你是專業的面試助手，擅長技術面試。請根據以下面試問題，提供：
 1. 一個專業的答案建議（2-3句話，重點清晰）
 2. 3個相關的參考資料連結（真實的技術文檔或文章）
 3. 一個簡短的 follow-up 提醒（告訴面試者下一句可以怎麼接）
+4. 答案中提及的所有技術關鍵字標籤（用 ===TAGS:=== 分隔開，例如 ===TAGS:===React, TypeScript, Node.js）
 
 回答格式：
 答案: [你的建議答案]
@@ -36,12 +61,14 @@ const SYSTEM_PROMPT_ZH = `你是專業的面試助手，擅長技術面試。請
 2. [標題] [URL]
 3. [標題] [URL]
 ---
-提示: [下一句可以怎麼接]`;
+提示: [下一句可以怎麼接]
+===TAGS:=== [tag1], [tag2], [tag3]`;
 
 const SYSTEM_PROMPT_EN = `You are a professional interview assistant, specializing in technical interviews. Based on the interview question below, provide:
 1. A professional answer suggestion (2-3 sentences, clear and concise)
 2. 3 related reference links (real technical documentation or articles)
 3. A brief follow-up reminder (how the candidate can continue)
+4. All technical keywords/tags mentioned in the answer (separated by ===TAGS:===, e.g. ===TAGS:===React, TypeScript, Node.js)
 
 Answer format:
 Answer: [your suggested answer]
@@ -51,7 +78,8 @@ References:
 2. [Title] [URL]
 3. [Title] [URL]
 ---
-Tip: [how to follow up]`;
+Tip: [how to follow up]
+===TAGS:=== [tag1], [tag2], [tag3]`;
 
 export default function InterviewPage() {
   const { user, isSignedIn, isLoaded } = useAuth();
@@ -67,6 +95,9 @@ export default function InterviewPage() {
   const [apiKey, setApiKey] = useState('');
   const [apiKeyConfigured, setApiKeyConfigured] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [techTags, setTechTags] = useState<string[]>([]);
+  const [expandedTag, setExpandedTag] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const recognitionRef = useRef<any>(null);
   const audioContextRef = useRef<any>(null);
 
@@ -119,6 +150,8 @@ export default function InterviewPage() {
     setStatus(t.interview.status.analyzing);
     setCurrentAnswer('');
     setCurrentSources([]);
+    setTechTags([]);
+    setExpandedTag(null);
 
     const systemPrompt = isEnglish ? SYSTEM_PROMPT_EN : SYSTEM_PROMPT_ZH;
 
@@ -142,12 +175,14 @@ export default function InterviewPage() {
       const data = await response.json();
       const answer = data.answer;
       const sources = parseSources(answer);
+      const tags = parseTechTags(answer);
 
       setCurrentAnswer(answer);
       setCurrentSources(sources);
+      setTechTags(tags);
       setStatus(t.interview.status.ready);
 
-      const newMsg: Message = { question: q, answer, sources, createdAt: new Date().toISOString() };
+      const newMsg: Message = { question: q, answer, sources, createdAt: new Date().toISOString(), techTags: tags };
       const newHistory = [newMsg, ...history].slice(0, 20);
       setHistory(newHistory);
       saveHistory(newHistory);
@@ -172,6 +207,12 @@ export default function InterviewPage() {
       }
     }
     return sources;
+  }
+
+  function parseTechTags(text: string) {
+    const match = text.match(/===TAGS:===\s*(.+?)(?:\n|$)/i);
+    if (!match) return [];
+    return match[1].split(',').map(t => t.trim()).filter(t => t.length > 0 && t.length < 50);
   }
 
   // Speech recognition
@@ -238,7 +279,7 @@ export default function InterviewPage() {
   function speakAnswer(text: string) {
     if (!('speechSynthesis' in window)) return;
     window.speechSynthesis.cancel();
-    const clean = text.replace(/答案:|Answer:|參考資料:|References:|提示:|Tip:/g, '').split(isEnglish ? 'References' : '參考資料')[0].trim();
+    const clean = text.replace(/答案:|Answer:|參考資料:|References:|提示:|Tip:|===TAGS:===.*/g, '').split(isEnglish ? 'References' : '參考資料')[0].trim();
     const utterance = new SpeechSynthesisUtterance(clean);
     utterance.lang = recognitionLang.startsWith('zh') ? 'zh-TW' : 'en-US';
     utterance.rate = 1.0;
@@ -266,6 +307,18 @@ export default function InterviewPage() {
     }
   }
 
+  function copyShareUrl() {
+    const shareUrl = `${window.location.origin}/interview`;
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  function toggleTagExpand(tag: string) {
+    setExpandedTag(expandedTag === tag ? null : tag);
+  }
+
   const getStatusDotClass = () => {
     if (isListening) return 'status-dot status-dot-listening';
     if (isAnalyzing) return 'status-dot status-dot-analyzing';
@@ -274,18 +327,19 @@ export default function InterviewPage() {
 
   const answerSections = currentAnswer ? currentAnswer.split('---') : [];
   const mainAnswer = answerSections[0]
+    ?.replace(/===TAGS:===.*/i, '')
     ?.replace(isEnglish ? 'Answer:' : '答案:', '')
     .trim() || '';
   const followUpHint = currentAnswer
     ? (isEnglish
-        ? currentAnswer.match(/Tip:\s*([\s\S]*?)$/)?.[1]?.trim()
-        : currentAnswer.match(/提示:\s*([\s\S]*?)$/)?.[1]?.trim())
+        ? currentAnswer.match(/Tip:\s*([\s\S]*?)(?:===TAGS:===|$)/)?.[1]?.trim()
+        : currentAnswer.match(/提示:\s*([\s\S]*?)(?:===TAGS:===|$)/)?.[1]?.trim())
     : null;
 
   if (!isLoaded) {
     return (
       <div className="min-h-screen bg-[#09090B] flex items-center justify-center">
-        <div className="text-indigo-400 animate-pulse text-sm">{t.interview.loading}</div>
+        <div className="text-blue-400 animate-pulse text-sm">{t.interview.loading}</div>
       </div>
     );
   }
@@ -425,19 +479,26 @@ export default function InterviewPage() {
               >
                 🔑 {apiKeyConfigured ? t.interview.apiKeySet : t.interview.apiKeyNotSet}
               </button>
+
+              {/* Share button */}
+              {currentAnswer && (
+                <button onClick={copyShareUrl} className="share-btn">
+                  {copied ? '✓ ' : '📋 '}
+                  {copied ? (isEnglish ? 'Copied!' : '已複製！') : (isEnglish ? 'Copy Link' : '複製連結')}
+                </button>
+              )}
             </div>
 
             {/* Answer Display */}
             <div className="card min-h-[300px]">
+              {/* Skeleton Loading */}
               {isAnalyzing ? (
-                <div className="flex flex-col items-center justify-center py-16 gap-4">
-                  <div className="relative w-14 h-14">
-                    <div className="absolute inset-0 rounded-full border-2 border-indigo-500/20" />
-                    <div className="absolute inset-0 rounded-full border-2 border-t-indigo-500 animate-spin" />
-                    <div className="absolute inset-2 rounded-full border-2 border-r-purple-500/30 animate-spin-slow" />
-                  </div>
-                  <p className="text-indigo-400 text-sm font-medium">{t.interview.status.analyzing}</p>
-                  <p className="text-zinc-600 text-xs">{isEnglish ? 'Using your API key, ~2-3 seconds' : '使用你的 API Key，預計 2-3 秒'}</p>
+                <div className="space-y-4 py-4">
+                  <div className="skeleton skeleton-text w-1/4" />
+                  <div className="skeleton skeleton-text w-full" />
+                  <div className="skeleton skeleton-text w-3/4" />
+                  <div className="skeleton skeleton-block mt-6" />
+                  <div className="skeleton skeleton-text w-2/3 mt-4" />
                 </div>
               ) : currentAnswer ? (
                 <div className="space-y-5 animate-fade-in-up">
@@ -453,12 +514,40 @@ export default function InterviewPage() {
                       {mainAnswer}
                     </div>
                   </div>
-                  <button
-                    onClick={() => speakAnswer(currentAnswer)}
-                    className="btn-outline text-sm px-4 py-2"
-                  >
-                    {t.interview.readAnswer}
-                  </button>
+
+                  {/* Tech Tags */}
+                  {techTags.length > 0 && (
+                    <div className="border-t border-zinc-800 pt-4">
+                      <div className="answer-tab mb-3">{isEnglish ? 'Tech Keywords' : '技術標籤'}</div>
+                      <div className="flex flex-wrap gap-2">
+                        {techTags.map((tag, i) => (
+                          <div key={i} className="relative">
+                            <button
+                              onClick={() => toggleTagExpand(tag)}
+                              className={`tech-tag ${expandedTag === tag ? 'bg-blue-500/20 border-blue-500/40 text-blue-300' : ''}`}
+                            >
+                              {tag}
+                              <span className="text-xs opacity-60 ml-1">{expandedTag === tag ? '✕' : 'ℹ'}</span>
+                            </button>
+                            {expandedTag === tag && (
+                              <div className="tech-tag-expanded">
+                                {TECH_TAG_DESCRIPTIONS[tag] || (isEnglish ? 'Technical concept related to the answer.' : '與答案相關的技術概念。')}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex flex-wrap gap-3">
+                    <button
+                      onClick={() => speakAnswer(currentAnswer)}
+                      className="btn-outline text-sm px-4 py-2"
+                    >
+                      {t.interview.readAnswer}
+                    </button>
+                  </div>
 
                   {currentSources.length > 0 && (
                     <div className="border-t border-zinc-800 pt-4">
@@ -469,9 +558,9 @@ export default function InterviewPage() {
                           href={s.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center gap-2 text-indigo-400 text-xs mb-2 hover:text-indigo-300 transition-colors group"
+                          className="flex items-center gap-2 text-blue-400 text-xs mb-2 hover:text-blue-300 transition-colors group"
                         >
-                          <span className="text-zinc-600 group-hover:text-indigo-400">→</span>
+                          <span className="text-zinc-600 group-hover:text-blue-400">→</span>
                           <span className="truncate">{s.title}</span>
                         </a>
                       ))}
@@ -512,10 +601,12 @@ export default function InterviewPage() {
                       setQuestion(h.question);
                       setCurrentAnswer(h.answer);
                       setCurrentSources(h.sources);
+                      setTechTags(h.techTags || []);
+                      setExpandedTag(null);
                     }}
-                    className="text-left p-3 bg-zinc-900/60 border border-zinc-800/50 rounded-xl hover:border-indigo-500/30 transition-all group"
+                    className="text-left p-3 bg-zinc-900/60 border border-zinc-800/50 rounded-xl hover:border-blue-500/30 transition-all group"
                   >
-                    <div className="text-xs text-indigo-400/80 mb-1 truncate font-medium group-hover:text-indigo-300">
+                    <div className="text-xs text-blue-400/80 mb-1 truncate font-medium group-hover:text-blue-300">
                       Q: {h.question.slice(0, 55)}{h.question.length > 55 ? '...' : ''}
                     </div>
                     <div className="text-[10px] text-zinc-600">

@@ -5,7 +5,7 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-[#09090B] relative overflow-hidden">
       {/* Background radial glow */}
-      <div className="absolute top-0 left-0 w-[800px] h-[800px] rounded-full bg-indigo-900/10 blur-[120px] pointer-events-none" />
+      <div className="absolute top-0 left-0 w-[800px] h-[800px] rounded-full bg-blue-900/10 blur-[120px] pointer-events-none" />
       <div className="absolute top-[-200px] left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-purple-900/8 blur-[100px] pointer-events-none" />
 
       {/* Nav */}
@@ -58,7 +58,7 @@ export default function LandingPage() {
         {/* Mock UI */}
         <div className="mt-16 max-w-4xl mx-auto animate-fade-in-up stagger-4">
           <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-transparent rounded-3xl blur-xl" />
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-blue-500/10 to-transparent rounded-3xl blur-xl" />
             <div className="relative glass-card border border-zinc-700/50 p-1">
               <div className="bg-[#09090B] rounded-2xl p-6 md:p-8 shadow-2xl">
                 <div className="flex gap-2 mb-5">
@@ -78,9 +78,9 @@ export default function LandingPage() {
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    <span className="text-xs bg-indigo-500/12 text-indigo-400 px-3 py-1 rounded-full border border-indigo-500/20">React</span>
-                    <span className="text-xs bg-indigo-500/12 text-indigo-400 px-3 py-1 rounded-full border border-indigo-500/20">Virtual DOM</span>
-                    <span className="text-xs bg-indigo-500/12 text-indigo-400 px-3 py-1 rounded-full border border-indigo-500/20">Performance</span>
+                    <span className="text-xs bg-blue-500/12 text-blue-400 px-3 py-1 rounded-full border border-blue-500/20">React</span>
+                    <span className="text-xs bg-blue-500/12 text-blue-400 px-3 py-1 rounded-full border border-blue-500/20">Virtual DOM</span>
+                    <span className="text-xs bg-blue-500/12 text-blue-400 px-3 py-1 rounded-full border border-blue-500/20">Performance</span>
                   </div>
                 </div>
               </div>
@@ -114,9 +114,9 @@ export default function LandingPage() {
             { icon: '📊', title: '練習歷史', desc: '記錄所有練習記錄，追蹤進步軌跡' },
             { icon: '🔑', title: '自帶 API Key', desc: 'BYOK 模式，無需訂閱，按使用量付費' },
           ].map((f, i) => (
-            <div key={i} className="card hover:border-indigo-500/30 transition-all duration-200 hover:-translate-y-1 group animate-fade-in-up" style={{ animationDelay: `${i * 0.07}s` }}>
+            <div key={i} className="card hover:border-blue-500/30 transition-all duration-200 hover:-translate-y-1 group animate-fade-in-up" style={{ animationDelay: `${i * 0.07}s` }}>
               <div className="text-3xl mb-4">{f.icon}</div>
-              <h3 className="text-zinc-100 font-semibold text-base mb-2 group-hover:text-indigo-300 transition-colors">{f.title}</h3>
+              <h3 className="text-zinc-100 font-semibold text-base mb-2 group-hover:text-blue-400 transition-colors">{f.title}</h3>
               <p className="text-zinc-500 text-sm leading-relaxed">{f.desc}</p>
             </div>
           ))}

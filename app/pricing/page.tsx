@@ -17,7 +17,7 @@ export default function PricingPage() {
         </Link>
         <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
           <LanguageSwitcher />
-          <Link href="/pricing" style={{ color: '#818CF8', fontSize: '14px', fontWeight: 600 }}>{t.nav.pricing}</Link>
+          <Link href="/pricing" style={{ color: '#60A5FA', fontSize: '14px', fontWeight: 600 }}>{t.nav.pricing}</Link>
           <Link href="/interview" style={{ color: '#A1A1AA', fontSize: '14px' }}>{t.nav.interview}</Link>
           <Link href="/sign-in">
             <button className="btn-outline" style={{ padding: '8px 20px', fontSize: '14px' }}>{t.nav.signIn}</button>
@@ -72,10 +72,10 @@ export default function PricingPage() {
 
           {/* Pro */}
           <div style={{ background: 'rgba(99,102,241,0.06)', border: '2px solid rgba(99,102,241,0.5)', borderRadius: '20px', padding: '32px', position: 'relative' }}>
-            <div style={{ position: 'absolute', top: '-14px', left: '50%', transform: 'translateX(-50%)', background: 'linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)', padding: '4px 16px', borderRadius: '20px', fontSize: '12px', fontWeight: 700, color: 'white' }}>
+            <div style={{ position: 'absolute', top: '-14px', left: '50%', transform: 'translateX(-50%)', background: 'linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)', padding: '4px 16px', borderRadius: '20px', fontSize: '12px', fontWeight: 700, color: 'white' }}>
               {isEnglish ? 'Most Popular' : '最受歡迎'}
             </div>
-            <div style={{ fontSize: '12px', color: '#818CF8', fontWeight: 700, letterSpacing: '1.5px', marginBottom: '12px', textTransform: 'uppercase', marginTop: '8px' }}>
+            <div style={{ fontSize: '12px', color: '#60A5FA', fontWeight: 700, letterSpacing: '1.5px', marginBottom: '12px', textTransform: 'uppercase', marginTop: '8px' }}>
               PRO
             </div>
             <div style={{ fontSize: '44px', fontWeight: 800, color: '#FAFAFA', marginBottom: '4px', letterSpacing: '-0.02em' }}>
@@ -95,7 +95,7 @@ export default function PricingPage() {
                 : ['Everything in Free', '問答歷史（200條）', '多語言支援（EN/ZH/JP/KR）', '優先 AI 回應速度', '面試練習模式', '匯出複習報告（Markdown）']
               ).map((f) => (
                 <div key={f} style={{ display: 'flex', gap: '10px', alignItems: 'center', fontSize: '14px', color: '#A1A1AA' }}>
-                  <span style={{ color: '#818CF8', fontSize: '16px' }}>✓</span> {f}
+                  <span style={{ color: '#60A5FA', fontSize: '16px' }}>✓</span> {f}
                 </div>
               ))}
             </div>
@@ -139,7 +139,7 @@ export default function PricingPage() {
             {isEnglish
               ? 'All plans require your own OpenAI API Key. We only provide AI analysis — no API costs are covered by us.'
               : '所有方案均需用戶自備 OpenAI API Key。我們僅提供 AI 分析功能，不墊付任何 API 費用。'}
-            <Link href="/settings" style={{ color: '#818CF8', marginLeft: '6px' }}>
+            <Link href="/settings" style={{ color: '#60A5FA', marginLeft: '6px' }}>
               {isEnglish ? 'Set up your API Key →' : '設定你的 API Key →'}
             </Link>
           </p>
