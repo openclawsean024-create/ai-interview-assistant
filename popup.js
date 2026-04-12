@@ -1,189 +1,163 @@
-// AI Interview Assistant - Popup Script
+// AI Interview Assistant v4 — popup.js
+
 let isListening = false;
 let currentPlatform = null;
-let latestExchange = null;
-
-const HISTORY_KEY = 'qaHistory';
 
 const platforms = {
   'zoom.us': 'Zoom',
   'teams.microsoft.com': 'Teams',
   'meet.google.com': 'Meet',
   'webex.com': 'Webex',
-  'slack.com': 'Slack'
+  'slack.com': 'Slack',
 };
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', async () => {
+  // Load settings
+  const settings = await chrome.storage.sync.get(['model', 'apiKey', 'isListening', 'recognitionLang', 'answerHistory']);
+  if (settings.model) document.getElementById('modelSelect').value = settings.model;
+  if (settings.recognitionLang) document.getElementById('langSelect').value = settings.recognitionLang;
+
+  // Check API key
+  if (!settings.apiKey) {
+    document.getElementById('apiWarning').classList.add('show');
+  }
+
+  // Load history
+  renderHistory(settings.answerHistory || []);
+
+  // Detect current platform
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (tab?.url) {
+    try {
+      const url = new URL(tab.url);
+      for (const [domain, name] of Object.entries(platforms)) {
+        if (url.hostname.includes(domain)) {
+          currentPlatform = name;
+          const tag = document.getElementById('platformTag');
+          tag.textContent = `📺 ${name}`;
+          tag.style.display = 'inline';
+          break;
+        }
+      }
+    } catch (e) {}
+  }
+
+  // SidePanel button click
+  document.getElementById('openSidePanelBtn').addEventListener('click', async () => {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tab?.id) {
+      await chrome.sidePanel.open({ tabId: tab.id }).catch(() => {
+        // Fallback: open with no tabId
+        chrome.sidePanel.open({}).catch(() => {});
+      });
+    }
+  });
+
+  // Toggle listening
+  document.getElementById('toggleListeningBtn').addEventListener('click', async () => {
+    isListening = !isListening;
+    updateListeningUI();
+
+    if (isListening) {
+      const { apiKey } = await chrome.storage.sync.get(['apiKey']);
+      if (!apiKey) {
+        alert('請先至設定頁填寫 API Key！');
+        isListening = false;
+        updateListeningUI();
+        return;
+      }
+      setStatus('listening', '聆聽中...');
+      // Notify sidePanel if open, otherwise open it
+      try {
+        await chrome.sidePanel.open({ tabId: tab?.id });
+      } catch (e) {}
+      chrome.runtime.sendMessage({ action: 'toggle-listening' });
+    } else {
+      setStatus('idle', '待機中');
+      chrome.runtime.sendMessage({ action: 'toggle-listening' });
+    }
+    await chrome.storage.sync.set({ isListening });
+  });
+
+  // Model / language selects
+  document.getElementById('modelSelect').addEventListener('change', async (e) => {
+    await chrome.storage.sync.set({ model: e.target.value });
+  });
+  document.getElementById('langSelect').addEventListener('change', async (e) => {
+    await chrome.storage.sync.set({ recognitionLang: e.target.value });
+  });
+
+  // Listen for listening state updates from background
+  chrome.runtime.onMessage.addListener((msg) => {
+    if (msg.type === 'listening-state') {
+      isListening = msg.isListening;
+      updateListeningUI();
+      setStatus(isListening ? 'listening' : 'idle', isListening ? '聆聽中' : '待機中');
+    }
+  });
+});
+
+// ─── UI ───────────────────────────────────────────────────────────────────────
+function updateListeningUI() {
+  const btn = document.getElementById('toggleListeningBtn');
+  const icon = document.getElementById('toggleIcon');
+  const text = document.getElementById('toggleText');
+  const sideBtn = document.getElementById('openSidePanelBtn');
+  const sideBtnIcon = document.getElementById('sidePanelBtnIcon');
+
+  if (isListening) {
+    btn.classList.add('listening', 'btn-primary');
+    btn.classList.remove('btn-secondary');
+    btn.style.background = 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)';
+    icon.textContent = '⏹';
+    text.textContent = '停止聆聽';
+    sideBtnIcon.textContent = '🔴';
+    sideBtn.style.display = 'none'; // hide when listening
+  } else {
+    btn.classList.remove('listening', 'btn-primary');
+    btn.classList.add('btn-secondary');
+    btn.style.background = '';
+    icon.textContent = '🎤';
+    text.textContent = '開始聆聽';
+    sideBtnIcon.textContent = '🔍';
+    sideBtn.style.display = '';
+  }
+}
+
+function setStatus(type, text) {
+  const dot = document.getElementById('statusDot');
+  dot.className = 'status-dot';
+  if (type === 'listening') dot.classList.add('listening');
+  else if (type === 'error') dot.classList.add('error');
+  else if (type === 'processing') dot.classList.add('processing');
+  document.getElementById('statusText').textContent = text;
+}
 
 function escapeHtml(text) {
   return String(text || '')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-}
-
-document.addEventListener('DOMContentLoaded', async () => {
-  const settings = await chrome.storage.local.get(['model', 'apiKey', 'isListening', 'recognitionLang', HISTORY_KEY]);
-
-  if (settings.model) document.getElementById('modelSelect').value = settings.model;
-  if (settings.recognitionLang) document.getElementById('languageSelect').value = settings.recognitionLang;
-
-  if (settings.isListening) {
-    isListening = true;
-    updateUI();
-  }
-
-  renderHistory(settings[HISTORY_KEY] || []);
-
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (tab?.url) {
-    const url = new URL(tab.url);
-    for (const [domain, name] of Object.entries(platforms)) {
-      if (url.hostname.includes(domain)) {
-        currentPlatform = name;
-        document.getElementById('platform').innerHTML = `📺 ${name}`;
-        break;
-      }
-    }
-  }
-});
-
-document.getElementById('startBtn').addEventListener('click', async () => {
-  isListening = !isListening;
-
-  if (isListening) {
-    const settings = await chrome.storage.local.get(['apiKey', 'recognitionLang']);
-    if (!settings.apiKey) {
-      alert('請先設定 API Key！');
-      isListening = false;
-      return;
-    }
-
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    chrome.tabs.sendMessage(tab.id, {
-      action: 'startListening',
-      recognitionLang: settings.recognitionLang || 'en-US'
-    });
-  } else {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    chrome.tabs.sendMessage(tab.id, { action: 'stopListening' });
-  }
-
-  await chrome.storage.local.set({ isListening });
-  updateUI();
-});
-
-document.getElementById('modelSelect').addEventListener('change', async (e) => {
-  await chrome.storage.local.set({ model: e.target.value });
-});
-
-document.getElementById('languageSelect').addEventListener('change', async (e) => {
-  await chrome.storage.local.set({ recognitionLang: e.target.value });
-});
-
-document.getElementById('settingsBtn').addEventListener('click', async () => {
-  const existing = await chrome.storage.local.get(['apiKey']);
-  const apiKey = prompt('請輸入 API Key (OpenAI / Google / Anthropic):', existing.apiKey || '');
-  if (apiKey) {
-    chrome.storage.local.set({ apiKey });
-    alert('API Key 已儲存！');
-  }
-});
-
-document.getElementById('exportBtn').addEventListener('click', async () => {
-  const data = await chrome.storage.local.get([HISTORY_KEY]);
-  const history = data[HISTORY_KEY] || [];
-  const lines = history.flatMap((item, idx) => [
-    `#${idx + 1}`,
-    `Time: ${item.createdAt}`,
-    `Question: ${item.question}`,
-    `Answer: ${item.answer}`,
-    `Sources: ${(item.sources || []).map((s) => `${s.title} ${s.url}`).join(' | ')}`,
-    ''
-  ]);
-  const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'ai-interview-history.txt';
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-});
-
-function updateUI() {
-  const btn = document.getElementById('startBtn');
-  const statusDot = document.getElementById('statusDot');
-  const statusText = document.getElementById('statusText');
-
-  if (isListening) {
-    btn.innerHTML = '<span>⏹️</span> 停止聆聽';
-    btn.style.background = 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)';
-    statusDot.className = 'status-dot listening';
-    statusText.textContent = '正在聆聽問題...';
-  } else {
-    btn.innerHTML = '<span>🎤</span> 開始聆聽問題';
-    btn.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
-    statusDot.className = 'status-dot';
-    statusText.textContent = '準備就緒';
-  }
-}
-
-function renderLatest(message) {
-  const loadingIndicator = document.getElementById('loadingIndicator');
-  if (loadingIndicator) loadingIndicator.style.display = 'none';
-  document.getElementById('aiResponse').innerHTML = `
-      <div class="question">問題: ${escapeHtml(message.question)}</div>
-      <div class="answer">${escapeHtml(message.answer || '正在分析...')}</div>
-      ${message.sources?.length ? `
-        <div class="sources">
-          <div class="sources-title">📚 參考資料:</div>
-          ${message.sources.map(s => `<a href="${s.url}" class="source-item" target="_blank" rel="noopener noreferrer">${escapeHtml(s.title)}</a>`).join('')}
-        </div>
-      ` : ''}
-    `;
-}
-
-function showLoading() {
-  const loadingIndicator = document.getElementById('loadingIndicator');
-  if (loadingIndicator) {
-    loadingIndicator.style.display = 'block';
-    document.getElementById('aiResponse').querySelector('.answer').textContent = 'AI 正在分析問題...';
-  }
+    .replace(/>/g, '&gt;');
 }
 
 function renderHistory(history) {
-  const el = document.getElementById('historyList');
-  if (!history.length) {
-    el.innerHTML = '<div class="history-empty">尚無歷史問答</div>';
+  const panel = document.getElementById('historyPanel');
+  if (!history || history.length === 0) {
+    panel.innerHTML = '<div class="history-empty">尚無歷史記錄</div>';
     return;
   }
-  el.innerHTML = history.slice(0, 8).map((item) => `
-    <div class="history-item">
-      <div class="history-q">Q: ${escapeHtml(item.question)}</div>
-      <div class="history-a">A: ${escapeHtml(item.answer).slice(0, 120)}</div>
-      <div class="history-time">${new Date(item.createdAt).toLocaleString('zh-TW')}</div>
-    </div>
-  `).join('');
+  panel.innerHTML = history.slice(0, 5).map(entry => {
+    const time = new Date(entry.ts).toLocaleString('zh-TW', {
+      month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
+    const aShort = (entry.a || '').substring(0, 60).replace(/\n/g, ' ');
+    return `
+      <div class="history-item">
+        <div class="history-q">${escapeHtml(entry.q || '')}</div>
+        <div class="history-a">${escapeHtml(aShort)}${entry.a && entry.a.length > 60 ? '...' : ''}</div>
+        <div class="history-time">${time}</div>
+      </div>
+    `;
+  }).join('');
 }
-
-async function appendHistory(message) {
-  const data = await chrome.storage.local.get([HISTORY_KEY]);
-  const history = data[HISTORY_KEY] || [];
-  history.unshift({
-    question: message.question,
-    answer: message.answer,
-    sources: message.sources || [],
-    createdAt: new Date().toISOString(),
-  });
-  const trimmed = history.slice(0, 20);
-  await chrome.storage.local.set({ [HISTORY_KEY]: trimmed });
-  renderHistory(trimmed);
-}
-
-chrome.runtime.onMessage.addListener((message) => {
-  if (message.type === 'question') {
-    latestExchange = message;
-    renderLatest(message);
-    appendHistory(message);
-  }
-});

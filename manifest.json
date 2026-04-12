@@ -1,21 +1,24 @@
 {
   "manifest_version": 3,
   "name": "AI Interview Assistant",
-  "version": "1.2",
-  "description": "Real-time AI-powered interview assistant that provides answers and reference materials during interviews on Zoom, Teams, Meet, and more.",
+  "version": "4.0",
+  "description": "AI面試助理 — 即時語音轉文字、GPT-4答案生成、TTS朗讀。Chrome插件為本體，Alt+Shift+M 開關監聽。",
   "permissions": [
-    "activeTab",
     "storage",
+    "activeTab",
     "scripting",
     "tabs",
-    "contextMenus"
+    "sidePanel",
+    "commands"
   ],
   "host_permissions": [
     "*://*.zoom.us/*",
     "*://*.teams.microsoft.com/*",
     "*://*.meet.google.com/*",
     "*://*.webex.com/*",
-    "*://*.slack.com/*"
+    "*://*.slack.com/*",
+    "https://api.openai.com/*",
+    "https://api.minimaxi.chat/*"
   ],
   "background": {
     "service_worker": "background.js"
@@ -26,6 +29,18 @@
       "16": "icons/icon16.png",
       "48": "icons/icon48.png",
       "128": "icons/icon128.png"
+    }
+  },
+  "side_panel": {
+    "default_path": "sidePanel.html"
+  },
+  "commands": {
+    "toggle-listening": {
+      "suggested_key": {
+        "default": "Alt+Shift+M",
+        "mac": "Alt+Shift+M"
+      },
+      "description": "切換聆聽開關"
     }
   },
   "icons": {
