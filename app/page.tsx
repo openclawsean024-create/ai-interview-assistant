@@ -43,16 +43,19 @@ export default function LandingPage() {
           Zoom、Teams、Google Meet 面試時，AI 即時分析問題，提供專業答案建議與權威參考資料。
         </p>
         <div className="flex gap-4 justify-center flex-wrap animate-fade-in-up stagger-3">
-          <Link href="/sign-up">
+          <a href="chrome://extensions/" onClick={() => alert('請開啟 chrome://extensions/ 並啟用開發者模式，然後載入未封裝項目（選擇包含 manifest.json 的資料夾）')}>
             <button className="btn-brand text-base px-10 py-4 shadow-glow">
-              免費開始使用
+              🤖 安裝 Chrome 插件
             </button>
-          </Link>
+          </a>
           <Link href="/interview">
             <button className="btn-outline text-base px-10 py-4">
               查看功能
             </button>
           </Link>
+        </div>
+        <div className="mt-6 text-center text-zinc-500 text-sm animate-fade-in-up stagger-3">
+          安裝插件後，Alt+Shift+M 面試即時監聽 — 無需登入
         </div>
 
         {/* Mock UI */}

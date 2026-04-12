@@ -128,14 +128,31 @@ export default function SettingsPage() {
     );
   }
 
+  // v4: settings page works WITHOUT login for Chrome extension users
   if (!isSignedIn) {
-    return (
-      <div style={{ minHeight: '100vh', background: '#09090B', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '16px' }}>
-        <div style={{ fontSize: '48px' }}>🔒</div>
-        <p style={{ color: '#71717A', fontSize: '14px' }}>{t.dashboard.loginRequired}</p>
-        <Link href="/sign-in"><button className="btn-brand">{t.dashboard.goToSignIn}</button></Link>
-      </div>
-    );
+    const isChrome = typeof (window as any).chrome !== 'undefined' && (window as any).chrome.storage;
+    if (!isChrome) {
+      // Show limited view for non-Chrome, non-logged-in users
+      return (
+        <div style={{ minHeight: '100vh', background: '#09090B' }}>
+          <nav style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 60px', borderBottom: '1px solid rgba(63,63,70,0.4)' }}>
+            <Link href="/" style={{ fontSize: '20px', fontWeight: 700, color: '#FAFAFA' }}><span className="gradient-text">AI Interview</span></Link>
+          </nav>
+          <div style={{ maxWidth: '640px', margin: '0 auto', padding: '40px 40px' }}>
+            <h1 style={{ fontSize: '28px', fontWeight: 700, color: '#FAFAFA', marginBottom: '16px' }}>⚙️ {isEnglish ? 'Settings' : '設定'}</h1>
+            <div style={{ padding: '20px', background: 'rgba(102,126,234,0.08)', border: '1px solid rgba(102,126,234,0.2)', borderRadius: '12px', marginBottom: '24px' }}>
+              <p style={{ color: '#9ca3af', fontSize: '14px', lineHeight: 1.8 }}>
+                🤖 <strong style={{ color: '#e5e7eb' }}>AI 面試助理 v4</strong><br /><br />
+                請透過 <strong style={{ color: '#60A5FA' }}>Chrome 插件</strong>使用此功能。<br />
+                安裝插件後，Alt+Shift+M 快速開關聆聽。<br />
+                插件 Popup → 開啟側邊欄麵試模式<br />
+                設定自動同步，無需登入。
+              </p>
+            </div>
+          </div>
+        </div>
+      );
+    }
   }
 
   return (
