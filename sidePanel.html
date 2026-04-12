@@ -185,7 +185,7 @@
   .answer-empty .hint { font-size: 11px; margin-top: 4px; }
 
   /* Speed control */
-  .speed-row { display: flex; gap: 4px; margin-top: 6px; }
+  .speed-row { display: flex; gap: 4px; margin-top: 6px; align-items: center; }
   .speed-btn {
     padding: 2px 8px;
     border-radius: 4px;
@@ -198,6 +198,14 @@
   }
   .speed-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
   .speed-btn:hover:not(.active) { color: var(--text); }
+
+  /* TTS active sentence highlight */
+  .answer-point.speaking {
+    background: rgba(102,126,234,0.18);
+    border-left: 3px solid #22c55e;
+    border-radius: 0 4px 4px 0;
+    padding-left: 9px;
+  }
 
   /* Settings row */
   .settings-row { display: flex; gap: 8px; align-items: center; }
@@ -407,6 +415,11 @@
     </div>
 
     <!-- Settings -->
+    <div class="settings-row">
+      <select class="select-field" id="micSelect">
+        <option value="">🎤 載入麥克風中...</option>
+      </select>
+    </div>
     <div class="settings-row">
       <select class="select-field" id="modelSelect">
         <option value="gpt-4o">GPT-4o</option>

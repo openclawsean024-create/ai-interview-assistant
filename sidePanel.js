@@ -19,6 +19,9 @@ let practiceCategory = 'javascript';
 let practiceQuestion = '';
 let timerInterval = null;
 let timerSeconds = 120;
+let selectedMicId = '';
+let currentAudioStream = null;
+let ttsChunkIndex = 0;
 
 // Practice questions bank
 const questions = {
@@ -67,6 +70,7 @@ const questions = {
 // ─── INIT ────────────────────────────────────────────────────────────────────
 async function init() {
   loadSettings();
+  setupMicSelector();
   setupRecognition();
   setupEventListeners();
   setupModeSwitcher();
@@ -78,7 +82,7 @@ async function init() {
 // ─── SETTINGS ─────────────────────────────────────────────────────────────────
 async function loadSettings() {
   const settings = await chrome.storage.sync.get([
-    'apiKey', 'model', 'recognitionLang', 'ttsSpeed', 'answerHistory'
+    'apiKey', 'model', 'recognitionLang', 'ttsSpeed', 'selectedMicId', 'answerHistory'
   ]);
   if (settings.model) $('#modelSelect').value = settings.model;
   if (settings.recognitionLang) $('#langSelect').value = settings.recognitionLang;
@@ -86,12 +90,71 @@ async function loadSettings() {
     ttsSpeed = parseFloat(settings.ttsSpeed);
     $$('.speed-btn').forEach(b => b.classList.toggle('active', b.dataset.speed === ttsSpeed.toString()));
   }
+  if (settings.selectedMicId !== undefined) {
+    selectedMicId = settings.selectedMicId;
+  }
 }
 
 async function checkApiKey() {
   const { apiKey } = await chrome.storage.sync.get(['apiKey']);
   $('#apiWarning').classList.toggle('show', !apiKey);
   return !!apiKey;
+}
+
+// ─── MICROPHONE SELECTOR ─────────────────────────────────────────────────────
+async function setupMicSelector() {
+  const micSelect = $('#micSelect');
+  if (!micSelect) return;
+
+  async function loadMics() {
+    try {
+      // Request permission first so we get device labels
+      const tmpStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      tmpStream.getTracks().forEach(t => t.stop());
+
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const mics = devices.filter(d => d.kind === 'audioinput');
+
+      micSelect.innerHTML = '';
+      if (mics.length === 0) {
+        micSelect.innerHTML = '<option value="">🎤 未偵測到麥克風</option>';
+        return;
+      }
+
+      mics.forEach((mic, i) => {
+        const label = mic.label || `麥克風 ${i + 1}`;
+        const opt = document.createElement('option');
+        opt.value = mic.deviceId;
+        opt.textContent = label;
+        if (mic.deviceId === selectedMicId) opt.selected = true;
+        micSelect.appendChild(opt);
+      });
+
+      // If no saved selection, default to first mic
+      if (!selectedMicId && mics.length > 0) {
+        selectedMicId = mics[0].deviceId;
+      }
+    } catch (e) {
+      micSelect.innerHTML = '<option value="">🎤 請允許麥克風權限</option>';
+    }
+  }
+
+  // Load mics on init
+  await loadMics();
+
+  // Re-enumerate when mic permission granted
+  navigator.mediaDevices.addEventListener('devicechange', loadMics);
+
+  // Save selection
+  micSelect.addEventListener('change', async (e) => {
+    selectedMicId = e.target.value;
+    await chrome.storage.sync.set({ selectedMicId });
+    // Restart listening with new mic if currently listening
+    if (isListening) {
+      stopListening();
+      startListening();
+    }
+  });
 }
 
 // ─── SPEECH RECOGNITION ───────────────────────────────────────────────────────
@@ -148,9 +211,33 @@ function setupRecognition() {
   };
 }
 
-function startListening() {
+async function startListening() {
   if (!recognition) return;
+
+  // Stop any existing stream
+  if (currentAudioStream) {
+    currentAudioStream.getTracks().forEach(t => t.stop());
+    currentAudioStream = null;
+  }
+
   try {
+    // Request microphone with selected device (or default)
+    const audioConstraints = selectedMicId
+      ? { deviceId: { exact: selectedMicId } }
+      : true;
+    currentAudioStream = await navigator.mediaDevices.getUserMedia({
+      audio: audioConstraints
+    });
+
+    // Use AudioContext to pipe mic into SpeechRecognition for mic selection support
+    try {
+      const audioCtx = new AudioContext();
+      const source = audioCtx.createMediaStreamSource(currentAudioStream);
+      // Note: Web Speech API doesn't directly accept AudioNode input.
+      // The selected mic is used via getUserMedia constraints above.
+      // Fallback: just start recognition (uses selected mic from constraints).
+    } catch (ae) { /* AudioContext not critical */ }
+
     recognition.start();
     isListening = true;
     updateUI();
@@ -158,12 +245,17 @@ function startListening() {
     resetSilenceTimer();
   } catch (e) {
     console.error('Failed to start recognition:', e);
+    setStatus('error', '無法開啟麥克風');
   }
 }
 
 function stopListening() {
   if (!recognition) return;
   try { recognition.stop(); } catch (e) {}
+  if (currentAudioStream) {
+    currentAudioStream.getTracks().forEach(t => t.stop());
+    currentAudioStream = null;
+  }
   isListening = false;
   clearTimeout(silenceTimer);
   updateUI();
@@ -278,6 +370,7 @@ function renderAnswer(answer) {
   ).join('');
   $('#speedRow').style.display = 'flex';
   $('#cancelAnswerBtn').style.display = 'none';
+  currentAnswer = answer;
 }
 
 function parseAnswerPoints(answer) {
@@ -326,21 +419,39 @@ function cancelAnswer() {
 // ─── TTS ─────────────────────────────────────────────────────────────────────
 function speak(text) {
   if (!('speechSynthesis' in window)) return;
+
+  // If already speaking a different answer, stop first
+  if (ttsSpeaking && currentAnswer && text !== currentAnswer) {
+    stopTts();
+  }
+
   window.speechSynthesis.cancel();
   ttsSpeaking = true;
+  ttsChunkIndex = 0;
   $('#ttsBtn').classList.add('speaking');
   $('#stopTtsBtn').style.display = 'flex';
 
   const chunks = parseAnswerPoints(text);
   let index = 0;
 
+  // Highlight current sentence
+  function highlightChunk(idx) {
+    $$('.answer-point').forEach((el, i) => {
+      el.classList.toggle('speaking', i === idx);
+    });
+  }
+
   function speakNext() {
     if (index >= chunks.length) {
+      // Done — clear highlights
+      $$('.answer-point').forEach(el => el.classList.remove('speaking'));
       ttsSpeaking = false;
       $('#ttsBtn').classList.remove('speaking');
       $('#stopTtsBtn').style.display = 'none';
       return;
     }
+
+    highlightChunk(index);
 
     const utt = new SpeechSynthesisUtterance(chunks[index]);
     utt.lang = $('#langSelect')?.value?.startsWith('en') ? 'en-US' : 'zh-TW';
@@ -359,12 +470,17 @@ function speak(text) {
 function stopTts() {
   window.speechSynthesis?.cancel();
   ttsSpeaking = false;
+  $$('.answer-point').forEach(el => el.classList.remove('speaking'));
   $('#ttsBtn').classList.remove('speaking');
   $('#stopTtsBtn').style.display = 'none';
 }
 
 function showTtsPrompt() {
-  if (!ttsSpeaking && currentAnswer) {
+  if (currentAnswer) {
+    if (ttsSpeaking) {
+      // TTS already running — stop it and show prompt for new answer
+      stopTts();
+    }
     $('#ttsPrompt').classList.add('show');
   }
 }

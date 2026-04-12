@@ -9,7 +9,8 @@
     "scripting",
     "tabs",
     "sidePanel",
-    "commands"
+    "commands",
+    "microphone"
   ],
   "host_permissions": [
     "*://*.zoom.us/*",

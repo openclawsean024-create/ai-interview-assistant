@@ -17,20 +17,22 @@ export default function SettingsPage() {
   const [testStatus, setTestStatus] = useState('');
   const [history, setHistory] = useState<any[]>([]);
   const [historyLoaded, setHistoryLoaded] = useState(false);
+  const [ttsSpeed, setTtsSpeed] = useState('1.0');
+  const [recognitionLang, setRecognitionLang] = useState('zh-TW');
+  const [micDevices, setMicDevices] = useState<MediaDeviceInfo[]>([]);
+  const [selectedMicId, setSelectedMicId] = useState('');
 
-  // Load API key from chrome.storage.sync (Chrome extension) or localStorage
+  // Load settings from chrome.storage.sync (Chrome extension) or localStorage
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   useEffect(() => {
     // Try chrome.storage.sync first (Chrome extension context)
     if (typeof (window as any).chrome !== 'undefined' && (window as any).chrome.storage) {
-      (window as any).chrome.storage.sync.get(['apiKey', 'answerHistory'], (data: any) => {
-        if (data.apiKey) {
-          setApiKey(data.apiKey);
-        }
-        if (data.answerHistory) {
-          setHistory(data.answerHistory);
-          setHistoryLoaded(true);
-        }
+      (window as any).chrome.storage.sync.get(['apiKey', 'answerHistory', 'ttsSpeed', 'recognitionLang', 'selectedMicId'], (data: any) => {
+        if (data.apiKey) setApiKey(data.apiKey);
+        if (data.answerHistory) { setHistory(data.answerHistory); setHistoryLoaded(true); }
+        if (data.ttsSpeed) setTtsSpeed(data.ttsSpeed);
+        if (data.recognitionLang) setRecognitionLang(data.recognitionLang);
+        if (data.selectedMicId) setSelectedMicId(data.selectedMicId);
       });
     } else if (isSignedIn && user?.id) {
       // Web fallback: localStorage per user
@@ -39,8 +41,25 @@ export default function SettingsPage() {
 
       const hist = localStorage.getItem(`history_${user.id}`);
       if (hist) { setHistory(JSON.parse(hist)); setHistoryLoaded(true); }
+
+      const speed = localStorage.getItem(`ttsSpeed_${user.id}`);
+      if (speed) setTtsSpeed(speed);
+      const lang = localStorage.getItem(`recognitionLang_${user.id}`);
+      if (lang) setRecognitionLang(lang);
     }
   }, [isSignedIn, user?.id]);
+
+  // Load mic devices (requires user gesture / permission)
+  async function loadMicDevices() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach(t => t.stop());
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      setMicDevices(devices.filter(d => d.kind === 'audioinput'));
+    } catch (e) {
+      // No mic permission — show empty
+    }
+  }
 
   async function saveApiKey() {
     if (!apiKey.trim()) {
@@ -197,6 +216,112 @@ export default function SettingsPage() {
                 {testStatus}
               </div>
             )}
+          </div>
+
+          {/* Extension Preferences */}
+          <div className="card">
+            <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#FAFAFA', marginBottom: '12px' }}>
+              🎛️ {isEnglish ? 'Extension Preferences' : '插件偏好設定'}
+            </h3>
+
+            {/* TTS Speed */}
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '13px', color: '#A1A1AA', marginBottom: '6px' }}>
+                {isEnglish ? 'TTS Speed (朗讀速度)' : 'TTS Speed (朗讀速度)'}
+              </label>
+              <div style={{ display: 'flex', gap: '6px' }}>
+                {['0.75', '1.0', '1.25', '1.5'].map(speed => (
+                  <button
+                    key={speed}
+                    onClick={async () => {
+                      setTtsSpeed(speed);
+                      if (typeof (window as any).chrome !== 'undefined' && (window as any).chrome.storage) {
+                        await new Promise<void>(resolve => (window as any).chrome.storage.sync.set({ ttsSpeed: speed }, resolve));
+                      }
+                      if (isSignedIn && user?.id) localStorage.setItem(`ttsSpeed_${user.id}`, speed);
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: '8px',
+                      borderRadius: '8px',
+                      border: speed === ttsSpeed ? '1px solid #667eea' : '1px solid rgba(63,63,70,0.6)',
+                      background: speed === ttsSpeed ? 'rgba(102,126,234,0.2)' : 'rgba(255,255,255,0.04)',
+                      color: speed === ttsSpeed ? '#a5b4fc' : '#71717A',
+                      cursor: 'pointer',
+                      fontSize: '13px',
+                      fontWeight: speed === ttsSpeed ? 600 : 400,
+                    }}
+                  >
+                    {speed === '1.0' ? `${speed} (正常)` : `${speed}x`}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Recognition Language */}
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '13px', color: '#A1A1AA', marginBottom: '6px' }}>
+                {isEnglish ? 'Speech Recognition Language (語音辨識語言)' : 'Speech Recognition Language (語音辨識語言)'}
+              </label>
+              <select
+                value={recognitionLang}
+                onChange={async (e) => {
+                  const lang = e.target.value;
+                  setRecognitionLang(lang);
+                  if (typeof (window as any).chrome !== 'undefined' && (window as any).chrome.storage) {
+                    await new Promise<void>(resolve => (window as any).chrome.storage.sync.set({ recognitionLang: lang }, resolve));
+                  }
+                  if (isSignedIn && user?.id) localStorage.setItem(`recognitionLang_${user.id}`, lang);
+                }}
+                style={{ width: '100%', padding: '10px 12px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(63,63,70,0.6)', borderRadius: '8px', color: '#D4D4D8', fontSize: '14px' }}
+              >
+                <option value="zh-TW">繁體中文</option>
+                <option value="zh-CN">簡體中文</option>
+                <option value="en-US">English (US)</option>
+                <option value="en-GB">English (UK)</option>
+                <option value="ja-JP">日本語</option>
+                <option value="ko-KR">한국어</option>
+              </select>
+            </div>
+
+            {/* Microphone Device */}
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <label style={{ fontSize: '13px', color: '#A1A1AA' }}>
+                  🎤 {isEnglish ? 'Microphone (麥克風)' : '🎤 Microphone (麥克風)'}
+                </label>
+                <button
+                  onClick={loadMicDevices}
+                  style={{ fontSize: '11px', color: '#60A5FA', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
+                >
+                  {isEnglish ? '重新整理' : '重新整理'}
+                </button>
+              </div>
+              {micDevices.length === 0 ? (
+                <p style={{ fontSize: '12px', color: '#52525B', marginTop: '4px' }}>
+                  {isEnglish ? '點擊「重新整理」以載入麥克風列表（需授權麥克風權限）' : '點擊「重新整理」以載入麥克風列表（需授權麥克風權限）'}
+                </p>
+              ) : (
+                <select
+                  value={selectedMicId}
+                  onChange={async (e) => {
+                    const micId = e.target.value;
+                    setSelectedMicId(micId);
+                    if (typeof (window as any).chrome !== 'undefined' && (window as any).chrome.storage) {
+                      await new Promise<void>(resolve => (window as any).chrome.storage.sync.set({ selectedMicId: micId }, resolve));
+                    }
+                    if (isSignedIn && user?.id) localStorage.setItem(`selectedMicId_${user.id}`, micId);
+                  }}
+                  style={{ width: '100%', padding: '10px 12px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(63,63,70,0.6)', borderRadius: '8px', color: '#D4D4D8', fontSize: '14px' }}
+                >
+                  {micDevices.map((mic, i) => (
+                    <option key={mic.deviceId} value={mic.deviceId}>
+                      {mic.label || `${isEnglish ? 'Microphone' : '麥克風'} ${i + 1}`}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
           </div>
 
           {/* Supported models */}
