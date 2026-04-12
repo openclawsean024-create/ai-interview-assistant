@@ -1,3 +1,5 @@
+'use client';
+
 import Link from 'next/link';
 import { LanguageSwitcher } from '@/app/components/language-switcher';
 
@@ -43,8 +45,8 @@ export default function LandingPage() {
           Zoom、Teams、Google Meet 面試時，AI 即時分析問題，提供專業答案建議與權威參考資料。
         </p>
         <div className="flex gap-4 justify-center flex-wrap animate-fade-in-up stagger-3">
-          <a href="chrome://extensions/" onClick={() => alert('請開啟 chrome://extensions/ 並啟用開發者模式，然後載入未封裝項目（選擇包含 manifest.json 的資料夾）')}>
-            <button className="btn-brand text-base px-10 py-4 shadow-glow">
+          <a href="chrome://extensions/">
+            <button className="btn-brand text-base px-10 py-4 shadow-glow" onClick={() => alert('請在 chrome://extensions/ 啟用開發者模式，選擇「載入未封裝項目」並選取包含 manifest.json 的資料夾')}>
               🤖 安裝 Chrome 插件
             </button>
           </a>
