@@ -7,16 +7,6 @@ import { useLocale } from '@/app/i18n/locale-context';
 import { LanguageSwitcher } from '@/app/components/language-switcher';
 import Link from 'next/link';
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Timer } from './components/Timer';
-import { VideoSimulation } from './components/VideoSimulation';
-import { RatingForm, RatingData } from './components/RatingForm';
-import {
-  QUESTION_BANK,
-  QUESTION_TYPE_LABELS,
-  type QuestionType,
-  type Language,
-  type Question,
-} from './components/questionBank';
 
 interface Message {
   question: string;
@@ -91,15 +81,9 @@ References:
 Tip: [how to follow up]
 ===TAGS:=== [tag1], [tag2], [tag3]`;
 
-// Sidebar tool type
-type ToolPanel = 'none' | 'timer' | 'video' | 'rating' | 'questionBank';
-
 export default function InterviewPage() {
   const { user, isSignedIn, isLoaded } = useAuth();
   const { locale, t } = useLocale();
-  const [mode, setMode] = useState<'practice' | 'questionBank'>('practice');
-
-  // AI Analysis state
   const [question, setQuestion] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [currentAnswer, setCurrentAnswer] = useState('');
@@ -117,17 +101,9 @@ export default function InterviewPage() {
   const recognitionRef = useRef<any>(null);
   const audioContextRef = useRef<any>(null);
 
-  // v5 tool state
-  const [toolPanel, setToolPanel] = useState<ToolPanel>('none');
-  const [ratingData, setRatingData] = useState<RatingData | null>(null);
-
-  // Question bank state
-  const [bankFilterType, setBankFilterType] = useState<QuestionType | 'all'>('all');
-  const [bankFilterLang, setBankFilterLang] = useState<Language | 'all'>('all');
-  const [bankSelected, setBankSelected] = useState<Question | null>(null);
-
   const isEnglish = locale === 'en';
 
+  // Initialize status text
   useEffect(() => {
     setStatus(t.interview.status.ready);
   }, [t]);
@@ -148,6 +124,7 @@ export default function InterviewPage() {
     }
   }, [isSignedIn, user?.id, t]);
 
+  // Save history to localStorage
   const saveHistory = useCallback((newHistory: Message[]) => {
     if (!isSignedIn || !user?.id) return;
     const existing: UsageStats = JSON.parse(localStorage.getItem(`usage_${user?.id}`) || JSON.stringify({
@@ -163,6 +140,7 @@ export default function InterviewPage() {
     localStorage.setItem(`usage_${user?.id}`, JSON.stringify(updated));
   }, [isSignedIn, user?.id]);
 
+  // Analyze question via API
   async function analyzeQuestion(q: string) {
     if (!apiKey) {
       setStatus(t.interview.status.noApiKey);
@@ -237,6 +215,7 @@ export default function InterviewPage() {
     return match[1].split(',').map(t => t.trim()).filter(t => t.length > 0 && t.length < 50);
   }
 
+  // Speech recognition
   function startListening(lang: string) {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
@@ -296,6 +275,7 @@ export default function InterviewPage() {
     setStatus(t.interview.status.ready);
   }
 
+  // TTS
   function speakAnswer(text: string) {
     if (!('speechSynthesis' in window)) return;
     window.speechSynthesis.cancel();
@@ -356,32 +336,6 @@ export default function InterviewPage() {
         : currentAnswer.match(/提示:\s*([\s\S]*?)(?:===TAGS:===|$)/)?.[1]?.trim())
     : null;
 
-  const placeholder = isEnglish
-    ? t.interview.placeholder.question
-    : t.interview.placeholder.questionZh;
-
-  // Question bank filtering
-  const filteredQuestions = QUESTION_BANK.filter((q) => {
-    if (bankFilterType !== 'all' && q.type !== bankFilterType) return false;
-    if (bankFilterLang !== 'all' && q.language !== bankFilterLang) return false;
-    return true;
-  });
-
-  function handleSelectQuestion(q: Question) {
-    setBankSelected(q);
-    setQuestion(q.question);
-    if (mode === 'questionBank' && apiKeyConfigured) {
-      analyzeQuestion(q.question);
-    }
-    if (mode === 'questionBank' && !apiKeyConfigured) {
-      // just pre-fill, user can set API key
-    }
-  }
-
-  function handleRatingSubmit(data: RatingData) {
-    setRatingData(data);
-  }
-
   if (!isLoaded) {
     return (
       <div className="min-h-screen bg-[#09090B] flex items-center justify-center">
@@ -402,6 +356,10 @@ export default function InterviewPage() {
     );
   }
 
+  const placeholder = isEnglish
+    ? t.interview.placeholder.question
+    : t.interview.placeholder.questionZh;
+
   return (
     <div className="min-h-screen bg-[#09090B]">
       {/* Nav */}
@@ -409,6 +367,8 @@ export default function InterviewPage() {
         <Link href="/" className="text-xl font-bold tracking-tight text-zinc-50">
           <span className="gradient-text">AI Interview</span>
         </Link>
+
+        {/* Desktop nav */}
         <div className="hidden md:flex gap-6 items-center">
           <LanguageSwitcher />
           <Link href="/dashboard" className="nav-link">{t.nav.dashboard}</Link>
@@ -416,6 +376,8 @@ export default function InterviewPage() {
           <Link href="/pricing" className="nav-link">{t.nav.pricing}</Link>
           <Link href="/settings" className="nav-link">{t.nav.settings}</Link>
         </div>
+
+        {/* Mobile menu button */}
         <button
           className="md:hidden text-zinc-400 p-2"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -436,7 +398,7 @@ export default function InterviewPage() {
       )}
 
       <div className="max-w-6xl mx-auto px-6 md:px-8 lg:px-12 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6">
 
           {/* Main Panel */}
           <div className="animate-fade-in-up">
@@ -447,227 +409,89 @@ export default function InterviewPage() {
               {t.interview.subtitle}
             </p>
 
-            {/* Mode Tabs */}
-            <div className="flex gap-2 mb-6">
-              <button
-                onClick={() => { setMode('practice'); setToolPanel('none'); }}
-                className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all border ${
-                  mode === 'practice'
-                    ? 'bg-blue-500/15 border-blue-500/40 text-blue-300'
-                    : 'bg-zinc-800/50 border-zinc-700/40 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'
-                }`}
-              >
-                🎤 {t.interview.mode.practice}
-              </button>
-              <button
-                onClick={() => { setMode('questionBank'); setToolPanel('none'); }}
-                className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all border ${
-                  mode === 'questionBank'
-                    ? 'bg-blue-500/15 border-blue-500/40 text-blue-300'
-                    : 'bg-zinc-800/50 border-zinc-700/40 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'
-                }`}
-              >
-                📚 {t.interview.mode.questionBank}
-              </button>
+            {/* Status bar */}
+            <div className="flex items-center gap-3 mb-5 px-4 py-3 bg-zinc-900/70 rounded-xl border border-zinc-800/60">
+              <div className={getStatusDotClass()} />
+              <span className="text-zinc-400 text-sm font-medium">{status}</span>
+              {isListening && (
+                <span className="ml-auto text-red-400 text-xs animate-pulse">● REC</span>
+              )}
             </div>
 
-            {/* Question Bank Mode */}
-            {mode === 'questionBank' && (
-              <div className="space-y-4 mb-6">
-                <div className="card">
-                  <div className="mb-4">
-                    <h2 className="text-base font-semibold text-zinc-200 mb-1">{t.interview.questionBank.title}</h2>
-                    <p className="text-xs text-zinc-500">{t.interview.questionBank.subtitle}</p>
-                  </div>
-
-                  {/* Filters */}
-                  <div className="flex flex-wrap gap-3 mb-4">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-zinc-500">{t.interview.questionBank.filterType}:</span>
-                      <select
-                        value={bankFilterType}
-                        onChange={(e) => setBankFilterType(e.target.value as QuestionType | 'all')}
-                        className="input-field w-auto min-w-[120px] text-xs"
-                      >
-                        <option value="all">{t.interview.questionBank.allTypes}</option>
-                        <option value="technical">{isEnglish ? QUESTION_TYPE_LABELS.technical.en : QUESTION_TYPE_LABELS.technical.zh}</option>
-                        <option value="behavioral">{isEnglish ? QUESTION_TYPE_LABELS.behavioral.en : QUESTION_TYPE_LABELS.behavioral.zh}</option>
-                        <option value="system-design">{isEnglish ? QUESTION_TYPE_LABELS['system-design'].en : QUESTION_TYPE_LABELS['system-design'].zh}</option>
-                        <option value="situational">{isEnglish ? QUESTION_TYPE_LABELS.situational.en : QUESTION_TYPE_LABELS.situational.zh}</option>
-                      </select>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-zinc-500">{t.interview.questionBank.filterLang}:</span>
-                      <select
-                        value={bankFilterLang}
-                        onChange={(e) => setBankFilterLang(e.target.value as Language | 'all')}
-                        className="input-field w-auto min-w-[100px] text-xs"
-                      >
-                        <option value="all">{t.interview.questionBank.allLangs}</option>
-                        <option value="en">🇺🇸 English</option>
-                        <option value="zh">🇹🇼 中文</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Question count */}
-                  <div className="text-xs text-zinc-600 mb-3">
-                    {filteredQuestions.length} {isEnglish ? 'questions' : '題'}
-                  </div>
-
-                  {/* Question list */}
-                  {filteredQuestions.length === 0 ? (
-                    <div className="text-center py-8 text-zinc-600 text-sm">
-                      {t.interview.questionBank.noQuestions}
-                    </div>
-                  ) : (
-                    <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
-                      {filteredQuestions.map((q) => (
-                        <div
-                          key={q.id}
-                          onClick={() => handleSelectQuestion(q)}
-                          className={`p-3 rounded-lg border cursor-pointer transition-all text-sm ${
-                            bankSelected?.id === q.id
-                              ? 'bg-blue-500/10 border-blue-500/40'
-                              : 'bg-zinc-800/40 border-zinc-700/30 hover:border-blue-500/25 hover:bg-zinc-800/70'
-                          }`}
-                        >
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="flex-1 min-w-0">
-                              <div className="text-zinc-200 text-xs leading-relaxed">{q.question}</div>
-                              <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
-                                  q.type === 'technical' ? 'bg-blue-500/15 text-blue-300' :
-                                  q.type === 'behavioral' ? 'bg-purple-500/15 text-purple-300' :
-                                  q.type === 'system-design' ? 'bg-amber-500/15 text-amber-300' :
-                                  'bg-emerald-500/15 text-emerald-300'
-                                }`}>
-                                  {isEnglish ? QUESTION_TYPE_LABELS[q.type].en : QUESTION_TYPE_LABELS[q.type].zh}
-                                </span>
-                                <span className="text-[10px] text-zinc-600">
-                                  {q.language === 'en' ? '🇺🇸 EN' : '🇹🇼 ZH'}
-                                </span>
-                              </div>
-                              {q.hint && bankSelected?.id === q.id && (
-                                <div className="mt-2 text-[10px] text-zinc-500 bg-zinc-900/60 rounded p-2">
-                                  💡 {t.interview.questionBank.hint}: {q.hint}
-                                </div>
-                              )}
-                            </div>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); handleSelectQuestion(q); }}
-                              className="flex-shrink-0 text-xs px-2 py-1 rounded bg-blue-500/15 text-blue-300 hover:bg-blue-500/25 transition-all"
-                            >
-                              {t.interview.questionBank.startPractice}
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Selected question AI analysis */}
-                {bankSelected && (
-                  <div className="card">
-                    <div className="text-xs text-zinc-500 mb-2">{t.interview.questionLabel}</div>
-                    <div className="text-sm text-zinc-200 mb-4 leading-relaxed">{bankSelected.question}</div>
-                    {!apiKeyConfigured && (
-                      <button onClick={handleKeySetup} className="btn-outline text-xs">
-                        🔑 {t.interview.apiKeyNotSet}
-                      </button>
-                    )}
-                  </div>
-                )}
+            {/* Input form */}
+            <form onSubmit={handleSubmit} className="mb-5">
+              <div className="flex flex-col sm:flex-row gap-2">
+                <input
+                  type="text"
+                  value={question}
+                  onChange={(e) => setQuestion(e.target.value)}
+                  placeholder={placeholder}
+                  className="input-field flex-1 text-sm"
+                  disabled={isAnalyzing}
+                />
+                <button
+                  type="submit"
+                  className="btn-brand whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={isAnalyzing || !question.trim()}
+                >
+                  {isAnalyzing ? t.interview.analyzing : t.interview.analyze}
+                </button>
               </div>
-            )}
+            </form>
 
-            {/* Practice Mode (original) */}
-            {mode === 'practice' && (
-              <>
-                {/* Status bar */}
-                <div className="flex items-center gap-3 mb-5 px-4 py-3 bg-zinc-900/70 rounded-xl border border-zinc-800/60">
-                  <div className={getStatusDotClass()} />
-                  <span className="text-zinc-400 text-sm font-medium">{status}</span>
-                  {isListening && (
-                    <span className="ml-auto text-red-400 text-xs animate-pulse">● REC</span>
-                  )}
-                </div>
+            {/* Controls */}
+            <div className="flex flex-wrap gap-3 mb-6">
+              <select
+                value={recognitionLang}
+                onChange={(e) => setRecognitionLang(e.target.value)}
+                className="input-field w-auto min-w-[130px] text-sm"
+              >
+                <option value="en-US">🇺🇸 English</option>
+                <option value="zh-TW">🇹🇼 中文</option>
+                <option value="zh-CN">🇨🇳 简体中文</option>
+                <option value="ja-JP">🇯🇵 日本語</option>
+                <option value="ko-KR">🇰🇷 한국어</option>
+              </select>
 
-                {/* Input form */}
-                <form onSubmit={handleSubmit} className="mb-5">
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <input
-                      type="text"
-                      value={question}
-                      onChange={(e) => setQuestion(e.target.value)}
-                      placeholder={placeholder}
-                      className="input-field flex-1 text-sm"
-                      disabled={isAnalyzing}
-                    />
-                    <button
-                      type="submit"
-                      className="btn-brand whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
-                      disabled={isAnalyzing || !question.trim()}
-                    >
-                      {isAnalyzing ? t.interview.analyzing : t.interview.analyze}
-                    </button>
-                  </div>
-                </form>
+              {isListening ? (
+                <button
+                  onClick={stopListening}
+                  className="px-5 py-2.5 rounded-xl font-semibold text-sm text-white bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-red-500/25"
+                >
+                  {t.interview.stopListening}
+                </button>
+              ) : (
+                <button
+                  onClick={() => startListening(recognitionLang)}
+                  className="btn-brand"
+                >
+                  {t.interview.startListening}
+                </button>
+              )}
 
-                {/* Controls */}
-                <div className="flex flex-wrap gap-3 mb-6">
-                  <select
-                    value={recognitionLang}
-                    onChange={(e) => setRecognitionLang(e.target.value)}
-                    className="input-field w-auto min-w-[130px] text-sm"
-                  >
-                    <option value="en-US">🇺🇸 English</option>
-                    <option value="zh-TW">🇹🇼 中文</option>
-                    <option value="zh-CN">🇨🇳 简体中文</option>
-                    <option value="ja-JP">🇯🇵 日本語</option>
-                    <option value="ko-KR">🇰🇷 한국어</option>
-                  </select>
+              <button
+                onClick={handleKeySetup}
+                className={`px-5 py-2.5 rounded-xl font-semibold text-sm transition-all border ${
+                  apiKeyConfigured
+                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                    : 'bg-white/5 border-white/10 text-red-400 hover:bg-red-500/10'
+                }`}
+              >
+                🔑 {apiKeyConfigured ? t.interview.apiKeySet : t.interview.apiKeyNotSet}
+              </button>
 
-                  {isListening ? (
-                    <button
-                      onClick={stopListening}
-                      className="px-5 py-2.5 rounded-xl font-semibold text-sm text-white bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-red-500/25"
-                    >
-                      {t.interview.stopListening}
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => startListening(recognitionLang)}
-                      className="btn-brand"
-                    >
-                      {t.interview.startListening}
-                    </button>
-                  )}
+              {/* Share button */}
+              {currentAnswer && (
+                <button onClick={copyShareUrl} className="share-btn">
+                  {copied ? '✓ ' : '📋 '}
+                  {copied ? (isEnglish ? 'Copied!' : '已複製！') : (isEnglish ? 'Copy Link' : '複製連結')}
+                </button>
+              )}
+            </div>
 
-                  <button
-                    onClick={handleKeySetup}
-                    className={`px-5 py-2.5 rounded-xl font-semibold text-sm transition-all border ${
-                      apiKeyConfigured
-                        ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-                        : 'bg-white/5 border-white/10 text-red-400 hover:bg-red-500/10'
-                    }`}
-                  >
-                    🔑 {apiKeyConfigured ? t.interview.apiKeySet : t.interview.apiKeyNotSet}
-                  </button>
-
-                  {currentAnswer && (
-                    <button onClick={copyShareUrl} className="share-btn">
-                      {copied ? '✓ ' : '📋 '}
-                      {copied ? (isEnglish ? 'Copied!' : '已複製！') : (isEnglish ? 'Copy Link' : '複製連結')}
-                    </button>
-                  )}
-                </div>
-              </>
-            )}
-
-            {/* Answer Display (shared) */}
+            {/* Answer Display */}
             <div className="card min-h-[300px]">
+              {/* Skeleton Loading */}
               {isAnalyzing ? (
                 <div className="space-y-4 py-4">
                   <div className="skeleton skeleton-text w-1/4" />
@@ -691,6 +515,7 @@ export default function InterviewPage() {
                     </div>
                   </div>
 
+                  {/* Tech Tags */}
                   {techTags.length > 0 && (
                     <div className="border-t border-zinc-800 pt-4">
                       <div className="answer-tab mb-3">{isEnglish ? 'Tech Keywords' : '技術標籤'}</div>
@@ -759,157 +584,61 @@ export default function InterviewPage() {
             </div>
           </div>
 
-          {/* Sidebar: Tools + History */}
-          <div className="animate-fade-in-up stagger-2 space-y-4">
-            {/* v5 Tool Buttons */}
-            <div className="space-y-2">
-              <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wider px-1">
-                {isEnglish ? 'Practice Tools' : '練習工具'}
+          {/* Sidebar: History */}
+          <div className="animate-fade-in-up stagger-2">
+            <h2 className="text-sm font-semibold text-zinc-300 mb-4 tracking-wide uppercase text-xs">{t.interview.historyTitle}</h2>
+            {history.length === 0 ? (
+              <div className="text-center py-12 text-zinc-600 text-sm">
+                <div className="text-3xl mb-2">📭</div>
+                <div>{t.interview.noHistory}</div>
               </div>
-              <div className="grid grid-cols-3 gap-2">
-                <button
-                  onClick={() => setToolPanel(toolPanel === 'timer' ? 'none' : 'timer')}
-                  className={`p-3 rounded-xl border text-center transition-all ${
-                    toolPanel === 'timer'
-                      ? 'bg-amber-500/10 border-amber-500/30 text-amber-300'
-                      : 'bg-zinc-800/50 border-zinc-700/40 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'
-                  }`}
-                >
-                  <div className="text-lg mb-1">⏱️</div>
-                  <div className="text-xs font-medium">{isEnglish ? 'Timer' : '計時器'}</div>
-                </button>
-                <button
-                  onClick={() => setToolPanel(toolPanel === 'video' ? 'none' : 'video')}
-                  className={`p-3 rounded-xl border text-center transition-all ${
-                    toolPanel === 'video'
-                      ? 'bg-blue-500/10 border-blue-500/30 text-blue-300'
-                      : 'bg-zinc-800/50 border-zinc-700/40 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'
-                  }`}
-                >
-                  <div className="text-lg mb-1">📹</div>
-                  <div className="text-xs font-medium">{isEnglish ? 'Video' : '錄影'}</div>
-                </button>
-                <button
-                  onClick={() => setToolPanel(toolPanel === 'rating' ? 'none' : 'rating')}
-                  className={`p-3 rounded-xl border text-center transition-all ${
-                    toolPanel === 'rating'
-                      ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
-                      : 'bg-zinc-800/50 border-zinc-700/40 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'
-                  }`}
-                >
-                  <div className="text-lg mb-1">📋</div>
-                  <div className="text-xs font-medium">{isEnglish ? 'Rating' : '評分'}</div>
-                </button>
-              </div>
-            </div>
-
-            {/* Tool Panel Content */}
-            {toolPanel === 'timer' && (
-              <div className="card">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="text-sm font-semibold text-amber-300">{t.interview.timer.title}</div>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {history.map((h, i) => (
                   <button
-                    onClick={() => setToolPanel('none')}
-                    className="ml-auto text-zinc-500 hover:text-zinc-300 text-xs"
+                    key={i}
+                    onClick={() => {
+                      setQuestion(h.question);
+                      setCurrentAnswer(h.answer);
+                      setCurrentSources(h.sources);
+                      setTechTags(h.techTags || []);
+                      setExpandedTag(null);
+                    }}
+                    className="text-left p-3 bg-zinc-900/60 border border-zinc-800/50 rounded-xl hover:border-blue-500/30 transition-all group"
                   >
-                    ✕
+                    <div className="text-xs text-blue-400/80 mb-1 truncate font-medium group-hover:text-blue-300">
+                      Q: {h.question.slice(0, 55)}{h.question.length > 55 ? '...' : ''}
+                    </div>
+                    <div className="text-[10px] text-zinc-600">
+                      {new Date(h.createdAt).toLocaleString(isEnglish ? 'en-US' : 'zh-TW', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    </div>
                   </button>
-                </div>
-                <Timer
-                  initialMinutes={3}
-                  isEnglish={isEnglish}
-                  onComplete={() => {}}
-                />
+                ))}
               </div>
             )}
 
-            {toolPanel === 'video' && (
-              <div className="card">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="text-sm font-semibold text-blue-300">{t.interview.video.title}</div>
-                  <button
-                    onClick={() => setToolPanel('none')}
-                    className="ml-auto text-zinc-500 hover:text-zinc-300 text-xs"
-                  >
-                    ✕
-                  </button>
-                </div>
-                <VideoSimulation isEnglish={isEnglish} />
-              </div>
+            {history.length > 0 && (
+              <button
+                onClick={() => {
+                  const lines = history.map((h, i) => [
+                    `#${i + 1}`,
+                    `Q: ${h.question}`,
+                    `A: ${h.answer}`,
+                    `Time: ${h.createdAt}`,
+                    '',
+                  ].join('\n'));
+                  const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = 'interview-history.txt';
+                  a.click();
+                }}
+                className="mt-4 w-full py-2.5 bg-zinc-800/50 border border-zinc-700/40 rounded-xl text-zinc-400 text-xs hover:bg-zinc-800 hover:text-zinc-200 transition-all"
+              >
+                {t.interview.exportHistory}
+              </button>
             )}
-
-            {toolPanel === 'rating' && (
-              <div className="card">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="text-sm font-semibold text-emerald-300">{t.interview.rating.title}</div>
-                  <button
-                    onClick={() => setToolPanel('none')}
-                    className="ml-auto text-zinc-500 hover:text-zinc-300 text-xs"
-                  >
-                    ✕
-                  </button>
-                </div>
-                <RatingForm isEnglish={isEnglish} onSubmit={handleRatingSubmit} />
-              </div>
-            )}
-
-            {/* History */}
-            <div>
-              <h2 className="text-sm font-semibold text-zinc-300 mb-4 tracking-wide uppercase text-xs">{t.interview.historyTitle}</h2>
-              {history.length === 0 ? (
-                <div className="text-center py-12 text-zinc-600 text-sm">
-                  <div className="text-3xl mb-2">📭</div>
-                  <div>{t.interview.noHistory}</div>
-                </div>
-              ) : (
-                <div className="flex flex-col gap-2">
-                  {history.slice(0, 8).map((h, i) => (
-                    <button
-                      key={i}
-                      onClick={() => {
-                        setQuestion(h.question);
-                        setCurrentAnswer(h.answer);
-                        setCurrentSources(h.sources);
-                        setTechTags(h.techTags || []);
-                        setExpandedTag(null);
-                        setMode('practice');
-                      }}
-                      className="text-left p-3 bg-zinc-900/60 border border-zinc-800/50 rounded-xl hover:border-blue-500/30 transition-all group"
-                    >
-                      <div className="text-xs text-blue-400/80 mb-1 truncate font-medium group-hover:text-blue-300">
-                        Q: {h.question.slice(0, 55)}{h.question.length > 55 ? '...' : ''}
-                      </div>
-                      <div className="text-[10px] text-zinc-600">
-                        {new Date(h.createdAt).toLocaleString(isEnglish ? 'en-US' : 'zh-TW', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {history.length > 0 && (
-                <button
-                  onClick={() => {
-                    const lines = history.map((h, i) => [
-                      `#${i + 1}`,
-                      `Q: ${h.question}`,
-                      `A: ${h.answer}`,
-                      `Time: ${h.createdAt}`,
-                      '',
-                    ].join('\n'));
-                    const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'interview-history.txt';
-                    a.click();
-                  }}
-                  className="mt-4 w-full py-2.5 bg-zinc-800/50 border border-zinc-700/40 rounded-xl text-zinc-400 text-xs hover:bg-zinc-800 hover:text-zinc-200 transition-all"
-                >
-                  {t.interview.exportHistory}
-                </button>
-              )}
-            </div>
           </div>
         </div>
       </div>
