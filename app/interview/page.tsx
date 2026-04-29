@@ -165,6 +165,10 @@ export default function InterviewPage() {
 
   async function analyzeQuestion(q: string) {
     if (!apiKey) {
+      const msg = isEnglish
+        ? '⚠️ API Key not set. Click "Set API Key" button below to enter your OpenAI API Key, then try again.'
+        : '⚠️ 尚未設定 API Key。請點擊下方「設定 API Key」按鈕輸入你的 OpenAI API Key 後再試。';
+      alert(msg);
       setStatus(t.interview.status.noApiKey);
       return;
     }
