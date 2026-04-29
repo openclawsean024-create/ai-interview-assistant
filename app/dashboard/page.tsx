@@ -21,7 +21,7 @@ interface UsageStats {
 }
 
 export default function DashboardPage() {
-  const { user, isSignedIn, isLoaded } = useAuth();
+  const { user, isSignedIn, isLoaded, signOut } = useAuth();
   const { t, locale } = useLocale();
   const [stats, setStats] = useState<UsageStats>({
     totalQuestions: 0,
@@ -75,6 +75,18 @@ export default function DashboardPage() {
           <Link href="/interview" style={{ color: '#A1A1AA', fontSize: '14px' }}>{t.nav.interview}</Link>
           <Link href="/pricing" style={{ color: '#A1A1AA', fontSize: '14px' }}>{t.nav.pricing}</Link>
           <Link href="/settings" style={{ color: '#A1A1AA', fontSize: '14px' }}>{t.nav.settings}</Link>
+          {isSignedIn ? (
+            <button
+              onClick={signOut}
+              style={{ background: 'none', border: 'none', color: '#F87171', fontSize: '14px', cursor: 'pointer', padding: '0', fontFamily: 'inherit' }}
+            >
+              {t.nav.logout || 'Logout'}
+            </button>
+          ) : (
+            <Link href="/sign-in">
+              <button className="btn-outline" style={{ padding: '6px 16px', fontSize: '14px' }}>{t.nav.signIn}</button>
+            </Link>
+          )}
         </div>
       </nav>
 

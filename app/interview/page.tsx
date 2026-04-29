@@ -110,6 +110,8 @@ export default function InterviewPage() {
   const [status, setStatus] = useState('');
   const [apiKey, setApiKey] = useState('');
   const [apiKeyConfigured, setApiKeyConfigured] = useState(false);
+  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
+  const [apiKeyInput, setApiKeyInput] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [techTags, setTechTags] = useState<string[]>([]);
   const [expandedTag, setExpandedTag] = useState<string | null>(null);
@@ -322,13 +324,20 @@ export default function InterviewPage() {
       alert(isEnglish ? 'Please sign in first' : '請先登入');
       return;
     }
-    const key = prompt(t.interview.enterApiKeyPrompt, apiKey || '');
-    if (key) {
-      setApiKey(key);
-      setApiKeyConfigured(true);
-      localStorage.setItem(`apikey_${user?.id}`, key);
-      alert(t.interview.apiKeySaved);
+    setApiKeyInput(apiKey || '');
+    setShowApiKeyModal(true);
+  }
+
+  function saveApiKeyFromModal() {
+    const key = apiKeyInput.trim();
+    if (!key) {
+      return;
     }
+    setApiKey(key);
+    setApiKeyConfigured(true);
+    localStorage.setItem(`apikey_${user?.id}`, key);
+    setShowApiKeyModal(false);
+    alert(t.interview.apiKeySaved);
   }
 
   function copyShareUrl() {
@@ -917,6 +926,51 @@ export default function InterviewPage() {
           </div>
         </div>
       </div>
+
+      {/* API Key Modal */}
+      {showApiKeyModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-6 w-full max-w-md mx-4 shadow-2xl">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-zinc-100">🔑 {isEnglish ? 'Set API Key' : '設定 API Key'}</h3>
+              <button
+                onClick={() => setShowApiKeyModal(false)}
+                className="text-zinc-500 hover:text-zinc-300 text-lg"
+              >
+                ✕
+              </button>
+            </div>
+            <p className="text-zinc-400 text-sm mb-4">
+              {isEnglish
+                ? 'Enter your OpenAI API Key to enable AI analysis. Your key is stored locally and never sent to our servers.'
+                : '輸入你的 OpenAI API Key 以啟用 AI 分析。你的 Key 只會儲存在本機，不會傳送到我們的伺服器。'}
+            </p>
+            <input
+              type="password"
+              value={apiKeyInput}
+              onChange={(e) => setApiKeyInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') saveApiKeyFromModal(); }}
+              placeholder="sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+              className="input-field w-full mb-4 text-sm"
+              autoFocus
+            />
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowApiKeyModal(false)}
+                className="flex-1 py-2.5 bg-zinc-800 border border-zinc-700 text-zinc-300 rounded-xl text-sm font-medium hover:bg-zinc-700 transition-all"
+              >
+                {isEnglish ? 'Cancel' : '取消'}
+              </button>
+              <button
+                onClick={saveApiKeyFromModal}
+                className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-500 transition-all"
+              >
+                {isEnglish ? 'Save & Connect' : '儲存並連線'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

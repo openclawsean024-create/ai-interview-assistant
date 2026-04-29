@@ -8,6 +8,7 @@ export const translations = {
       settings: '設定',
       signIn: '登入',
       signUp: '開始使用',
+      logout: '登出',
     },
     hero: {
       badge: '面試表現 → 提升一個檔次',
@@ -206,6 +207,7 @@ export const translations = {
       settings: 'Settings',
       signIn: 'Sign In',
       signUp: 'Get Started',
+      logout: 'Logout',
     },
     hero: {
       badge: 'INTERVIEW PERFORMANCE → LEVEL UP',
