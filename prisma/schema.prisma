@@ -1,0 +1,69 @@
+// Prisma schema for AI Interview Assistant
+// Database: Neon (serverless Postgres via Vercel Postgres)
+// To bootstrap: npx prisma db push
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Plan {
+  FREE
+  PRO
+  BUSINESS
+}
+
+model User {
+  id           String    @id             // Clerk user ID
+  email        String    @unique
+  plan         Plan      @default(FREE)
+  stripeCustomerId String? @unique
+  apiKeyEnc    String?                   // AES-GCM encrypted OpenAI key
+  sessions     Session[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model Session {
+  id          String     @id @default(cuid())
+  userId      String
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String?                   // Auto-generated from first question
+  questions   Question[]
+  startedAt   DateTime   @default(now())
+  endedAt     DateTime?
+  reportId    String?    @unique
+
+  @@index([userId])
+}
+
+model Question {
+  id         String   @id @default(cuid())
+  sessionId  String
+  session    Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  text       String
+  aiAnswer   String   @db.Text
+  userAnswer String?  @db.Text          // User's spoken/typed answer for evaluation
+  aiScore    Int?                        // AI evaluation score (0-100)
+  aiFeedback String?  @db.Text
+  techTags   String[]
+  userRating Int?                        // Self-rating 1-5
+  askedAt    DateTime @default(now())
+
+  @@index([sessionId])
+}
+
+model Report {
+  id           String   @id @default(cuid())
+  sessionId    String   @unique
+  overallScore Int
+  summary      String   @db.Text
+  strengths    String[]
+  improvements String[]
+  radarData    Json                      // { structure, depth, relevance, clarity, confidence }
+  createdAt    DateTime @default(now())
+}

@@ -7,6 +7,7 @@ import { useLocale } from '@/app/i18n/locale-context';
 import { LanguageSwitcher } from '@/app/components/language-switcher';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import { encryptApiKey, decryptApiKey, isEncrypted } from '@/lib/crypto';
 
 export default function SettingsPage() {
   const { user, isSignedIn, isLoaded } = useAuth();
@@ -35,9 +36,15 @@ export default function SettingsPage() {
         if (data.selectedMicId) setSelectedMicId(data.selectedMicId);
       });
     } else if (isSignedIn && user?.id) {
-      // Web fallback: localStorage per user
+      // Web fallback: localStorage per user (decrypt if encrypted)
       const stored = localStorage.getItem(`apikey_${user.id}`);
-      if (stored) setApiKey(stored);
+      if (stored) {
+        if (isEncrypted(stored)) {
+          decryptApiKey(stored).then(setApiKey).catch(() => setApiKey(stored));
+        } else {
+          setApiKey(stored);
+        }
+      }
 
       const hist = localStorage.getItem(`history_${user.id}`);
       if (hist) { setHistory(JSON.parse(hist)); setHistoryLoaded(true); }
@@ -75,9 +82,14 @@ export default function SettingsPage() {
       });
     }
 
-    // Also save to localStorage (web fallback)
+    // Encrypt and save to localStorage (web fallback)
     if (isSignedIn && user?.id) {
-      localStorage.setItem(`apikey_${user.id}`, key);
+      encryptApiKey(key).then((enc) => {
+        localStorage.setItem(`apikey_${user.id}`, enc);
+      }).catch(() => {
+        // Fallback to plaintext if crypto unavailable
+        localStorage.setItem(`apikey_${user.id}`, key);
+      });
     }
 
     setSaved(true);
@@ -368,6 +380,19 @@ export default function SettingsPage() {
           </div>
         </div>
 
+        {/* AI Evaluation Demo */}
+        <div style={{ marginBottom: '40px' }}>
+          <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#FAFAFA', marginBottom: '8px' }}>
+            🤖 {isEnglish ? 'AI Answer Evaluation' : 'AI 答案評分'}
+          </h2>
+          <p style={{ color: '#71717A', fontSize: '14px', marginBottom: '16px', lineHeight: 1.6 }}>
+            {isEnglish
+              ? 'Paste your answer to get AI feedback on structure, depth, relevance, and clarity.'
+              : '貼上你的答案，AI 會從結構、深度、相關性、清晰度四個維度給出評分與建議。'}
+          </p>
+          <EvalDemo apiKey={apiKey} locale={locale} />
+        </div>
+
         {/* History Section */}
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
@@ -425,6 +450,133 @@ export default function SettingsPage() {
           )}
         </div>
 
+      </div>
+    </div>
+  );
+}
+
+function EvalDemo({ apiKey, locale }: { apiKey: string; locale: string }) {
+  const isEn = locale === 'en';
+  const [question, setQuestion] = useState('');
+  const [answer, setAnswer] = useState('');
+  const [result, setResult] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  async function evaluate() {
+    if (!apiKey.trim()) {
+      setError(isEn ? 'Please save your API Key first.' : '請先儲存 API Key。');
+      return;
+    }
+    if (!question.trim() || !answer.trim()) {
+      setError(isEn ? 'Please fill in both fields.' : '請填寫問題和答案。');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    setResult(null);
+    try {
+      const res = await fetch('/api/evaluate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question, userAnswer: answer, apiKey, locale }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error || 'Error'); }
+      else { setResult(data); }
+    } catch (e: any) {
+      setError(e.message);
+    }
+    setLoading(false);
+  }
+
+  const DIM_LABELS: Record<string, string> = isEn
+    ? { structure: 'STAR Structure', depth: 'Depth', relevance: 'Relevance', clarity: 'Clarity' }
+    : { structure: 'STAR 結構', depth: '深度', relevance: '相關性', clarity: '清晰度' };
+
+  return (
+    <div className="card">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div>
+          <label style={{ fontSize: '13px', color: '#A1A1AA', display: 'block', marginBottom: '6px' }}>
+            {isEn ? 'Interview Question' : '面試問題'}
+          </label>
+          <input
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            placeholder={isEn ? 'e.g. Tell me about a time you solved a complex problem.' : '例如：請描述你解決複雜問題的經驗。'}
+            className="input-field"
+          />
+        </div>
+        <div>
+          <label style={{ fontSize: '13px', color: '#A1A1AA', display: 'block', marginBottom: '6px' }}>
+            {isEn ? 'Your Answer' : '你的答案'}
+          </label>
+          <textarea
+            value={answer}
+            onChange={(e) => setAnswer(e.target.value)}
+            rows={4}
+            placeholder={isEn ? 'Type or paste your answer here...' : '輸入或貼上你的答案...'}
+            style={{ width: '100%', padding: '12px 14px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(63,63,70,0.6)', borderRadius: '10px', color: '#FAFAFA', fontSize: '14px', resize: 'vertical', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
+          />
+        </div>
+        {error && <p style={{ fontSize: '13px', color: '#F87171' }}>{error}</p>}
+        <button
+          onClick={evaluate}
+          disabled={loading}
+          className="btn-brand"
+          style={{ opacity: loading ? 0.6 : 1 }}
+        >
+          {loading ? (isEn ? 'Evaluating...' : 'AI 評分中...') : (isEn ? 'Evaluate Answer' : 'AI 評分')}
+        </button>
+
+        {result && (
+          <div style={{ marginTop: '8px', padding: '16px', background: 'rgba(37,99,235,0.06)', border: '1px solid rgba(37,99,235,0.2)', borderRadius: '12px' }}>
+            {/* Overall score */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+              <div style={{ fontSize: '40px', fontWeight: 800, color: result.score >= 80 ? '#10B981' : result.score >= 60 ? '#F59E0B' : '#F87171' }}>
+                {result.score}
+              </div>
+              <div>
+                <div style={{ fontSize: '12px', color: '#71717A' }}>{isEn ? 'Overall Score / 100' : '總分 / 100'}</div>
+                <div style={{ fontSize: '13px', color: '#D4D4D8', marginTop: '2px' }}>{result.feedback}</div>
+              </div>
+            </div>
+            {/* Dimension bars */}
+            {result.dimensions && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
+                {Object.entries(result.dimensions).map(([key, val]) => (
+                  <div key={key}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#A1A1AA', marginBottom: '3px' }}>
+                      <span>{DIM_LABELS[key] || key}</span>
+                      <span style={{ fontWeight: 600, color: '#D4D4D8' }}>{val as number}</span>
+                    </div>
+                    <div style={{ height: '5px', background: 'rgba(255,255,255,0.06)', borderRadius: '3px', overflow: 'hidden' }}>
+                      <div style={{ height: '100%', borderRadius: '3px', background: '#2563EB', width: `${val as number}%`, transition: 'width 0.5s ease' }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {/* Strengths & Improvements */}
+            {result.strengths?.length > 0 && (
+              <div style={{ marginBottom: '8px' }}>
+                <div style={{ fontSize: '12px', color: '#10B981', fontWeight: 600, marginBottom: '4px' }}>{isEn ? 'Strengths' : '強項'}</div>
+                {result.strengths.map((s: string, i: number) => (
+                  <div key={i} style={{ fontSize: '12px', color: '#A1A1AA', paddingLeft: '12px' }}>✓ {s}</div>
+                ))}
+              </div>
+            )}
+            {result.improvements?.length > 0 && (
+              <div>
+                <div style={{ fontSize: '12px', color: '#F59E0B', fontWeight: 600, marginBottom: '4px' }}>{isEn ? 'Improvements' : '改善建議'}</div>
+                {result.improvements.map((s: string, i: number) => (
+                  <div key={i} style={{ fontSize: '12px', color: '#A1A1AA', paddingLeft: '12px' }}>→ {s}</div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
