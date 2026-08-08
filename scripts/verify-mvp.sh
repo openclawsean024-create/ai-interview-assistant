@@ -43,7 +43,7 @@ fi
 
 echo ""
 echo "[3/4] Mock default — /api/interview/start works without API key"
-RESP=$(curl -sS --max-time 30 -X POST -H "Content-Type: application/json" \
+RESP=$(curl -sSL --max-time 30 -X POST -H "Content-Type: application/json" \
   -d '{"jobType":"software-engineer","jobLevel":"mid"}' \
   "$HOST/api/interview/start" 2>/dev/null || echo '{"error":"curl_failed"}')
 if echo "$RESP" | grep -q '"success":true'; then
@@ -64,7 +64,7 @@ fi
 
 echo ""
 echo "[4/4] /api/interview/answer works without API key (Mock mode)"
-RESP=$(curl -sS --max-time 30 -X POST -H "Content-Type: application/json" \
+RESP=$(curl -sSL --max-time 30 -X POST -H "Content-Type: application/json" \
   -d '{"sessionId":"smoke","questionId":"q1","questionText":"STAR question","answerText":"我曾經在期限內完成一個專案","jobType":"software-engineer","jobLevel":"mid"}' \
   "$HOST/api/interview/answer" 2>/dev/null || echo '{"error":"curl_failed"}')
 if echo "$RESP" | grep -q '"score"'; then
