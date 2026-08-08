@@ -1,11 +1,17 @@
-# AI 面試助理｜繁中面試複盤與練習教練 — 規格計劃書 v2.2.1
+# AI 面試助理｜繁中面試複盤與練習教練 — 規格計劃書 v3.0
 
-> 版本：v2.2.1｜更新日期：2026-07-19｜維護者：Sean PRD Rewrite Specialist｜對接技術：Hermes Agent + engineering
-> 文件狀態：sweet-spot-driven rewrite；不執行任何專案 kill。
+> 版本：v3.0｜更新日期：2026-08-08｜維護者：Sean PRD Rewrite Specialist｜對接技術：Hermes Agent + engineering
+> 文件狀態：在 v2.2.1 (sweet=5) 基礎上補實作契約；不改變 sweet-spot 評分與商業定位。
 > 原始碼：https://github.com/openclawsean024-create/ai-interview-assistant
 > sweet spot：5/10｜建議動作：investigate
+> v3.0 相對 v2.2.1 主要差異：新增 §16「Mock + BYOK 雙模式」、§17「anonymous-first 身分模型」、§18「可量測的 MVP 完成度契約」、CHANGELOG.md。§1–§15 內容完整保留。
 
 本文件的數字、競品與市場結論均為待驗證假設；不可把 mock、HTTP 可達性或訪談口頭意願當成營收事實。
+> v3.0 實作契約（給 coding agent 用）：
+> - **無外部 API key 也能跑**：Mock mode 預設啟用，可離線演示；BYOK mode 由使用者在 Settings 啟用。
+> - **無註冊也能跑**：anonymous session 用 localStorage cuid；Clerk 介面保留為 P2 升級路徑。
+> - **降級不丟資料**：所有 draft 寫入 localStorage 草稿層；LLM timeout/5xx 走 Mock fallback 並保留 retry 計數。
+> - **單一回歸閘門**：`npm run build` 必須綠、AC-001~010 至少 8 條可手動驗證、Vercel production HTTP 200 且內容包含 v3.0 banner。
 ---
 ## 1. 產品概述 (Product Overview)
 
@@ -1034,4 +1040,236 @@ quadrantChart
 - **Stage 1.5 smoke test gate** (sweet<5 強制；sweet>=5 強烈建議): 5 訪談 → 社群 smoke → landing page smoke → 才決定 go/hold/pivot。
 - **本次 rewrite 與上一版差異**: 補齊 §5.3 degradation regex（移除 emoji 對齊）、§11/§12 標題一致性、§4.3 Prisma 模型英文命名（validator regex 需求）、§1.5 sweet<5 強制 Stage 1.5 gate 明文化。
 
-*文件結束。本文件為 v2.2.1，依 sweet-spot-driven rewrite 完全重寫。*
+### 15.14 2026-08-08 v3.0 SPEC 升級（實作契約補完，不改 sweet=5）
+
+- **動機**：v2.2.1 寫得很完整但缺實作契約，導致程式碼實作時難以判斷哪條 MUST 對應哪段程式碼；Vercel production 沒有 env vars 時整站失去 LLM 能力。
+- **sweet spot score**: **5/10（不變）**。本版僅補 §16–§19 實作契約，不重新評分。
+- **本版新增**：
+  - §16 Mock + BYOK 雙模式架構（無外部 API key 也能跑）
+  - §17 anonymous-first 身分模型（Clerk 降為 P2 升級路徑）
+  - §18 可量測的 MVP 完成度契約（給 coding agent 用的回歸閘門）
+  - §19 部署契約（Vercel / GitHub Pages 兩條路徑 + 環境變數最低需求）
+  - CHANGELOG.md（追蹤 v3.0 之後每個版本的可驗證差異）
+- **本版不變更**：§1–§15 全部內容、sweet=5 評分、競品清單、Non-Goals。
+- **驗證閘門**：v3.0 部署成功的定義 = (a) `npm run build` 綠、(b) AC-001~010 至少 8 條可手動驗證、(c) Vercel production `https://ai-interview-assistant.vercel.app` HTTP 200 且內容包含 v3.0 banner、(d) `curl /api/interview/start` 不傳 apiKey 也能回傳 Mock 問題。
+
+---
+## 16. Mock + BYOK 雙模式架構（v3.0 新增）
+
+### 16.1 為什麼要雙模式
+
+v2.2.1 的程式碼完全依賴使用者提供 OpenAI API key（BYOK），導致：
+- 沒有 OpenAI key 的訪客 / Demo / Pilot 完全無法體驗
+- Vercel 沒有 env vars 時 production 等於全站掛掉
+- sweet=5 階段還在做驗證，**讓 pilot 不用先花錢買 key 才能試用** 是基本要求
+
+v3.0 設計成雙模式：預設 Mock（demo-friendly），使用者可在 Settings 啟用 BYOK（real LLM）。
+
+### 16.2 模式切換契約
+
+```typescript
+// 在每個 API route 內
+type LlmMode = 'mock' | 'byok';
+
+interface LlmContext {
+  mode: LlmMode;          // 預設 mock
+  apiKey?: string;        // byok 模式必填
+  userId: string;         // localStorage cuid
+  retryCount: number;     // 連續失敗次數
+}
+
+// Provider 介面（app/lib/llm/types.ts）
+interface LlmProvider {
+  analyze(ctx: LlmContext, question: string): Promise<AnalysisResult>;
+  evaluate(ctx: LlmContext, answer: string): Promise<EvaluationResult>;
+  generateQuestion(ctx: LlmContext, asked: string[]): Promise<QuestionResult>;
+  finalReport(ctx: LlmContext, answers: Answer[]): Promise<ReportResult>;
+}
+```
+
+實作：
+- `app/lib/llm/mock-provider.ts` — 回傳預先寫好的繁中面試問題、評分模板、報告模板
+- `app/lib/llm/byok-provider.ts` — 呼叫 OpenAI，使用前端傳入的 apiKey（**不走環境變數**，避免 key 在 Vercel 出現）
+- `app/lib/llm/router.ts` — 根據 `LlmContext.mode` 路由
+
+### 16.3 Mock 模式內容契約
+
+| 任務 | Mock 回傳內容來源 | 變化性 |
+|---|---|---|
+| 職缺解析 | 6 個 jobType × 3 個 level 預設題庫（已存在於 `app/api/interview/start/route.ts`） | 每 session 隨機抽 5 題 |
+| 評分回饋 | 預設 5 維度分數（structure/depth/relevance/clarity/confidence）+ 2 句中文建議 | 依使用者回答長度動態微調（>100 字 +5 等） |
+| 下一題 | 從未問清單挑下一題 | 不重複 |
+| 最終報告 | 預設模板，填入聚合分數 | 5 維度雷達圖 |
+
+Mock 內容必須在 footer 明確標示「Demo Mode (Mock)」，避免使用者誤以為是 LLM 生成。
+
+### 16.4 BYOK 模式契約
+
+- 前端呼叫 `/api/test-key` 驗證 key 有效（已存在）
+- key 存 localStorage `aiia.byok.apiKey`（僅前端，不送後端 env）
+- API route 收到 request 時 header `x-api-key` 帶 key
+- timeout 30s、retry 1 次、retry 失敗降級 Mock
+- 不在 server log / analytics 印 apiKey 任何片段
+
+### 16.5 自動降級規則
+
+```
+request → byok 模式？
+  ├─ 否 → mock 直接回傳
+  └─ 是 → fetch OpenAI
+        ├─ 200 → 回傳 LLM 結果
+        ├─ 401/403 → 4000 INPUT_INVALID（前端提示 key 失效）
+        ├─ 429 → 等 2s 後 retry 1 次，仍 429 降級 Mock
+        ├─ 5xx/timeout → retry 1 次，仍失敗降級 Mock
+        └─ retryCount > 3 → 強制 mock（不再嘗試 byok 30 分鐘）
+```
+
+降級時 response 加 `"degraded": true`、`"reason": "openai_timeout"`、`"fallbackMode": "mock"`。
+
+### 16.6 Acceptance Criteria v3.0 新增
+
+- **AC-011**：未設 apiKey 時 `/api/interview/start` 回傳 5 道 Mock 題，response 含 `"mode":"mock"`
+- **AC-012**：BYOK 模式 timeout 時自動降級 Mock，response 含 `"degraded":true`
+- **AC-013**：Mock 模式頁面 footer 顯示「Demo Mode (Mock) — 設定 API Key 啟用真實 LLM」字串
+- **AC-014**：Settings 頁可在 Mock 與 BYOK 之間切換，切換不清除既有 session
+
+---
+## 17. anonymous-first 身分模型（v3.0 新增）
+
+### 17.1 為什麼 anonymous-first
+
+v2.2.1 預設所有功能都要 Clerk 註冊，違反 §1.3「先讓使用者完成一個真實 job，再要求註冊」。v3.0 改為：
+- 進站直接可用 anonymous session（localStorage cuid）
+- 註冊 / 登入為 3 次免費額度用完後的牆（升級 Pro 才需要）
+- Clerk 介面保留在程式碼但 P2 升級路徑，不在 MVP 阻擋使用者
+
+### 17.2 session 生命週期
+
+```
+訪客進入
+  └─ localStorage 沒有 aiia.session.uid ?
+       ├─ 是 → 生成 cuid v4 寫入 aiia.session.uid、aiia.session.createdAt
+       └─ 否 → 沿用既有 uid
+每次操作
+  └─ 寫入 aiia.session.events[] (append-only，保留 90 天)
+3 次免費額度用完
+  └─ 顯示 paywall modal，不刪除既有資料，詢問是否升級或匯出
+30 天未使用
+  └─ 詢問是否續用，不主動刪除（§3.1 AC-010「免費額度到期後不會刪除既有資料」）
+```
+
+### 17.3 個資 / 同意
+
+- 首次進入顯示一次性 consent modal（拒絕仍可使用，但 session 不寫入 events）
+- session 資料全在 localStorage，不送後端
+- 移除整個 session = Settings 一鍵刪除（清空 localStorage 所有 `aiia.*` keys）
+
+### 17.4 Acceptance Criteria v3.0 新增
+
+- **AC-015**：首次進入網站不跳任何登入牆，直接可進入 landing → interview
+- **AC-016**：localStorage 出現 `aiia.session.uid`（cuid v4 格式）
+- **AC-017**：完成 3 次 interview 後出現 paywall modal，內容含「升級 Pro 或匯出資料」
+- **AC-018**：Settings → 刪除 session 按鈕一鍵清空所有 `aiia.*` localStorage keys，按下後頁面顯示「已刪除」訊息
+
+---
+## 18. 可量測的 MVP 完成度契約（v3.0 新增）
+
+### 18.1 設計目的
+
+給 coding agent 一個「什麼算完成」的明確收斂點。v2.2.1 的 §6 DoD 寫得很好但沒有可自動驗證的條件。
+
+### 18.2 自動驗證契約
+
+```bash
+# /scripts/verify-mvp.sh — 每個 PR 必跑
+npm run build                      # 1. build 綠
+curl -sI https://<host>/ | grep 200 # 2. production HTTP 200
+curl -s https://<host>/ | grep "v3.0"  # 3. banner 出現
+curl -sX POST https://<host>/api/interview/start -d '{}' | grep '"mode":"mock"'  # 4. Mock 預設開
+```
+
+### 18.3 手動驗證清單（每次 release 前跑一次）
+
+| # | AC | 驗證動作 | 預期 |
+|---|---|---|---|
+| 1 | AC-001 | 上傳 PDF + JD 文字 → 分析 | 30s 內出現 10–20 題清單 |
+| 2 | AC-002 | 任一題展開追問 | 至少一條對應履歷事實 |
+| 3 | AC-003 | 空字串回答 → 送出 | 不可捏造工作經驗 |
+| 4 | AC-004 | 進入錄音模式 | 出現同意 modal + 停止按鈕 |
+| 5 | AC-005 | 關閉網路 → 轉錄失敗 | 可貼上文字完成同份複盤 |
+| 6 | AC-006 | 檢視回饋 | 區分「可觀察證據」與「AI 推論」 |
+| 7 | AC-007 | Settings → 刪除 session | 清空 localStorage |
+| 8 | AC-008 | Coach 預設關閉；開啟時每則提示含「請用自己的話」 | UI 顯示 |
+| 9 | AC-009 | 同一題做兩次 | 並排比較 |
+| 10 | AC-010 | 用完 3 次免費 | 不刪既有資料 |
+| 11 | AC-011 | Mock 模式 | 不傳 apiKey 也回 5 題 |
+| 12 | AC-012 | BYOK timeout | 自動降級 |
+| 13 | AC-013 | Mock footer | 顯示 Demo Mode |
+| 14 | AC-014 | Settings 切換 | 不清既有 session |
+| 15 | AC-015 | 首次進入 | 不跳登入牆 |
+| 16 | AC-016 | localStorage | 出現 aiia.session.uid |
+| 17 | AC-017 | 用完 3 次 | 出現 paywall |
+| 18 | AC-018 | 刪除 session | localStorage 清空 |
+
+每個 release 至少 16/18 通過才算完成。
+
+### 18.4 文件 — 程式碼對映
+
+| FR/AC | 主要檔案 |
+|---|---|
+| FR-001/AC-001 | `app/api/analyze/route.ts` |
+| FR-002/AC-002 | `app/api/interview/start/route.ts` |
+| FR-003 | `app/interview/components/questionBank.ts` |
+| FR-004/AC-004 | `app/interview/components/VideoSimulation.tsx` |
+| FR-005/AC-006 | `app/api/interview/end/route.ts` |
+| FR-006/AC-009 | `app/report/[id]/page.tsx` |
+| FR-007/AC-018 | `app/settings/page.tsx` |
+| FR-008/AC-008 | `app/interview/[sessionId]/page.tsx` (coach toggle) |
+| FR-009/AC-017 | `app/pricing/page.tsx` + paywall modal |
+| FR-010 | `tailwind.config.js` + a11y primitives |
+| AC-011~014 | `app/lib/llm/*` (新增) |
+| AC-015~018 | `app/lib/session/*` (新增) |
+
+---
+## 19. 部署契約（v3.0 新增）
+
+### 19.1 雙部署目標
+
+| 目標 | URL | 觸發 | 用途 |
+|---|---|---|---|
+| Vercel production | `https://ai-interview-assistant.vercel.app` | push master | 主要對外 |
+| GitHub Pages | `https://openclawsean024-create.github.io/ai-interview-assistant/` | `.github/workflows/deploy.yml` GITHUB_PAGES=1 | 靜態鏡像 / 備援 |
+
+`next.config.js` 已支援 `GITHUB_PAGES=1` 切換為 `output: 'export'`。
+
+### 19.2 環境變數最低需求（v3.0 MVP）
+
+| 變數 | 必要性 | 用途 |
+|---|---|---|
+| （無）| 必需 | v3.0 Mock mode 不需要任何 env var |
+
+Clerk 變數（`NEXT_PUBLIC_CLERK_*`）列為 P2 升級路徑，**MVP 不需要**。這是 v3.0 跟 v2.2.1 程式碼最大的差異。
+
+### 19.3 GitHub Actions 部署閘門
+
+- `.github/workflows/deploy.yml` 必須在 master push 後執行：
+  1. `npm ci`
+  2. `npm run build` (GITHUB_PAGES=1)
+  3. 部署 `out/` 到 `gh-pages` branch
+- 任一步驟失敗 → workflow failed → 必須修才能 merge
+
+### 19.4 Vercel 設定
+
+- Production alias: `ai-interview-assistant.vercel.app`
+- Password Protection: OFF（已驗證 2026-08-08）
+- Env vars: 0（v3.0 Mock mode 不需要）
+- Framework: Next.js（auto-detect）
+- Node version: 18.x 或 20.x
+
+### 19.5 Acceptance Criteria v3.0 新增
+
+- **AC-019**：Vercel production HTTP 200，HTML 含字串 "v3.0"
+- **AC-020**：`curl /api/interview/start -d '{}'` 在 production 不傳 apiKey 也回 200 + `"mode":"mock"`
+
+---
+*文件結束。本文件為 v3.0，在 v2.2.1 基礎上補 §16–§19 實作契約與 CHANGELOG.md。*
