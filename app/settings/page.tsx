@@ -23,7 +23,6 @@ export default function SettingsPage() {
   const [selectedMicId, setSelectedMicId] = useState('');
 
   // Load settings from chrome.storage.sync (Chrome extension) or localStorage
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   useEffect(() => {
     // Try chrome.storage.sync first (Chrome extension context)
     if (typeof (window as any).chrome !== 'undefined' && (window as any).chrome.storage) {
