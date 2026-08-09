@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic';
 
 import { useAuth } from '@/components/auth-provider';
 import Link from 'next/link';
+import { incrementQuota } from '@/app/lib/session/quota';
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 
@@ -162,6 +163,11 @@ export default function InterviewSessionPage({ params }: { params: { sessionId: 
       const reportData = data.data;
       setReport(reportData);
       setShowReport(true);
+
+      // v3.0 SPEC §17.2 / AC-017: 完成一次 interview 就扣一次免費額度,
+      // 達上限時 SessionInit 會自動顯示 paywall modal
+      const quota = incrementQuota();
+      window.dispatchEvent(new CustomEvent('aiia:quota-changed', { detail: { used: quota.used } }));
 
       // Save report to localStorage
       localStorage.setItem(`report_${reportData.reportId}`, JSON.stringify(reportData));

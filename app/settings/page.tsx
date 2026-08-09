@@ -5,6 +5,8 @@ export const dynamic = 'force-dynamic';
 import { useAuth } from '@/components/auth-provider';
 import { useLocale } from '@/app/i18n/locale-context';
 import { LanguageSwitcher } from '@/app/components/language-switcher';
+import { deleteSession } from '@/app/lib/session/session';
+import { FREE_TIER_LIMIT, readQuota } from '@/app/lib/session/quota';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 
@@ -21,6 +23,8 @@ export default function SettingsPage() {
   const [recognitionLang, setRecognitionLang] = useState('zh-TW');
   const [micDevices, setMicDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedMicId, setSelectedMicId] = useState('');
+  const [sessionUsed, setSessionUsed] = useState(0);
+  const [sessionDeleted, setSessionDeleted] = useState(false);
 
   // Load settings from chrome.storage.sync (Chrome extension) or localStorage
   useEffect(() => {
@@ -118,6 +122,39 @@ export default function SettingsPage() {
     a.click();
     URL.revokeObjectURL(url);
   }
+
+  // v3.0 SPEC §17.4 AC-018: 一鍵刪除所有 aiia.* localStorage keys
+  function handleDeleteSession() {
+    const ok = typeof window !== 'undefined' && window.confirm(
+      isEnglish
+        ? 'Delete all local data (session + practice events)? This cannot be undone.'
+        : '刪除所有本機資料（session + 練習事件）？此操作無法復原。',
+    );
+    if (!ok) return;
+    deleteSession();
+    setSessionDeleted(true);
+    setSessionUsed(0);
+    setHistory([]);
+    setHistoryLoaded(true);
+    // 通知 SessionInit 重新讀 quota
+    window.dispatchEvent(new CustomEvent('aiia:session-deleted'));
+  }
+
+  // 監聽 quota change 與 delete event
+  useEffect(() => {
+    setSessionUsed(readQuota().used);
+    const onQuota = () => setSessionUsed(readQuota().used);
+    const onDeleted = () => {
+      setSessionUsed(0);
+      setSessionDeleted(true);
+    };
+    window.addEventListener('aiia:quota-changed', onQuota);
+    window.addEventListener('aiia:session-deleted', onDeleted);
+    return () => {
+      window.removeEventListener('aiia:quota-changed', onQuota);
+      window.removeEventListener('aiia:session-deleted', onDeleted);
+    };
+  }, []);
 
   if (!isLoaded) {
     return (
@@ -422,6 +459,74 @@ export default function SettingsPage() {
               ))}
             </div>
           )}
+        </div>
+
+        {/* v3.0 Session Section — AC-016/017/018 */}
+        <div>
+          <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#FAFAFA', marginBottom: '16px' }}>
+            🪪 {isEnglish ? 'Local Session' : '本機 Session'}
+          </h2>
+          <div className="card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <div>
+                <div style={{ fontSize: '13px', color: '#A1A1AA' }}>
+                  {isEnglish ? 'Free practice quota' : '免費練習額度'}
+                </div>
+                <div style={{ fontSize: '22px', fontWeight: 700, color: sessionUsed >= FREE_TIER_LIMIT ? '#EF4444' : '#FAFAFA', marginTop: '4px' }}>
+                  {Math.max(0, FREE_TIER_LIMIT - sessionUsed)} / {FREE_TIER_LIMIT}
+                </div>
+              </div>
+              <div style={{ fontSize: '11px', color: '#71717A', textAlign: 'right' }}>
+                {isEnglish
+                  ? 'Resets when you delete the session'
+                  : '刪除 session 後重置'}
+              </div>
+            </div>
+
+            {sessionDeleted && (
+              <div
+                role="status"
+                data-testid="session-deleted-toast"
+                style={{
+                  padding: '10px 14px',
+                  background: 'rgba(16,185,129,0.1)',
+                  border: '1px solid rgba(16,185,129,0.3)',
+                  borderRadius: '8px',
+                  color: '#10B981',
+                  fontSize: '13px',
+                  marginBottom: '12px',
+                }}
+              >
+                ✅ {isEnglish ? 'Deleted' : '已刪除'}
+              </div>
+            )}
+
+            <button
+              onClick={handleDeleteSession}
+              data-testid="delete-session-btn"
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                background: 'transparent',
+                border: '1px solid rgba(239,68,68,0.4)',
+                borderRadius: '8px',
+                color: '#F87171',
+                fontSize: '14px',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+              onMouseOver={(e) => { (e.target as HTMLElement).style.background = 'rgba(239,68,68,0.08)'; }}
+              onMouseOut={(e) => { (e.target as HTMLElement).style.background = 'transparent'; }}
+            >
+              🗑️ {isEnglish ? 'Delete local session' : '刪除本機 session'}
+            </button>
+
+            <p style={{ fontSize: '11px', color: '#71717A', marginTop: '8px', lineHeight: 1.5 }}>
+              {isEnglish
+                ? 'Removes all aiia.* keys from this browser (session id, practice quota, events). Cannot be undone.'
+                : '清除本瀏覽器所有 aiia.* 資料（session id、配額、事件）。無法復原。'}
+            </p>
+          </div>
         </div>
 
       </div>

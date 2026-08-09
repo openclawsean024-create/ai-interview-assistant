@@ -1,131 +1,97 @@
 # AI Interview Assistant
 
-Real-time AI-powered interview assistant for Zoom, Teams, Meet, Webex, and Slack. Converts the Chrome extension into a deployable web app.
+> 繁中、面試前演練 + 面試後證據化複盤。即時提示只保留為 opt-in 的低風險教練,**不做隱藏式代答**。
+> v3.0 — sweet=5, investigate。SPEC: [`PRD/SPEC.md`](PRD/SPEC.md) · CHANGELOG: [`PRD/CHANGELOG.md`](PRD/CHANGELOG.md)
 
 ## 🚀 Live Demo
 
-**Vercel**: https://ai-interview-assistant-6d7dve4zg-seans-projects-7dc76219.vercel.app
+**Production**: <https://ai-interview-assistant-eosin.vercel.app>
 
-**GitHub Pages**: https://openclawsean024-create.github.io/ai-interview-assistant/
+> ⚠️ Demo Mode (Mock) 預設啟用 — **無需 API Key、無需註冊** 即可體驗完整 3 次免費面試演練。
+> 在 Settings 貼上自己的 OpenAI key 即可切換到 BYOK 模式用真實 LLM。
 
-> ⚠️ **Important**: Vercel deployment protection must be disabled for the app to be publicly accessible.
-> Go to **Vercel Dashboard → Project → Settings → Deployment Protection → Disable "Vercel Authentication"**
+## v3.0 三大差異（SPEC §16 / §17 / §18）
 
-## Features
+- 🎭 **Mock 模式預設** — 不打 OpenAI,離線可跑 3 次完整面試。SPEC §16。
+- 🪪 **anonymous-first** — 進站即可使用,localStorage cuid + 一鍵刪除。**不要求註冊**。SPEC §17。
+- 🛟 **降級不丟資料** — BYOK 模式 timeout/5xx 自動降級 Mock,草稿保留。SPEC §5.3 + §16.5。
 
-- 🎤 **Voice Recognition** — Speak your interview question, AI listens automatically
-- ⚡ **Instant AI Answers** — GPT-4o powered answer suggestions in 2-3 seconds
-- 📚 **Reference Materials** — Auto-sourced technical docs and articles
-- 🔊 **Text-to-Speech** — Read answers aloud to maintain eye contact
-- 📊 **Usage Dashboard** — Track your interview practice history
-- 🔑 **BYOK** — Bring your own OpenAI API key (we never subsidize)
-
-## Setup
-
-### 1. Clone & Install
+## Quick Start
 
 ```bash
-npm install
+npm install --legacy-peer-deps
+npm run dev        # 本機 dev server,http://localhost:3000
+npm run build      # production build
+npm run lint       # ESLint
 ```
 
-### 2. Set up Clerk Authentication
+**v3.0 不需要任何環境變數** — Mock mode 完全離線運作。BYOK mode 由使用者在 Settings 貼 API key(僅存 localStorage,**不上 server**)。
 
-1. Create an account at [clerk.com](https://clerk.com)
-2. Create a new application (choose your auth method)
-3. Copy your Publishable Key and Secret Key
-4. Copy `.env.local.example` to `.env.local` and fill in your keys:
-   ```bash
-   cp .env.local.example .env.local
-   # Then fill in:
-   # NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
-   # CLERK_SECRET_KEY=sk_test_...
-   ```
+## Chrome Extension
 
-### 3. Run Locally
+`manifest.json` + `background.js` + `sidePanel.js` 在 repo root,適合在 `chrome://extensions/` 載入未封裝項目使用。
 
-```bash
-npm run dev
-```
-
-Visit `http://localhost:3000`
-
-### 4. Set Your API Key
-
-1. Sign up / Sign in
-2. Go to Settings
-3. Enter your OpenAI API key from [platform.openai.com/api-keys](https://platform.openai.com/api-keys)
-
-> ⚠️ You must bring your own OpenAI API key. We do not subsidize any API costs.
-
-### 5. Deploy to Vercel
-
-```bash
-npx vercel --prod --public
-```
-
-> ⚠️ **Vercel Deployment Protection**: After deploying, go to **Vercel Dashboard → Project → Settings → Deployment Protection** and disable "Vercel Authentication" to make the app publicly accessible.
-
-Set environment variables in Vercel Dashboard → Project → Settings → Environment Variables:
-| Variable | Description |
-|----------|-------------|
-| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk Publishable Key |
-| `CLERK_SECRET_KEY` | Clerk Secret Key |
+ZIP 打包版: [`ai-interview-assistant-chrome-extension.zip`](ai-interview-assistant-chrome-extension.zip)
 
 ## Pages
 
 | Route | Description | Auth Required |
 |-------|-------------|---------------|
-| `/` | Landing page | No |
-| `/pricing` | Pricing plans | No |
-| `/sign-in` | Sign in | No |
-| `/sign-up` | Sign up | No |
-| `/dashboard` | Usage stats & history | Yes |
-| `/interview` | Core interview practice | Yes |
-| `/settings` | API key management | Yes |
+| `/` | Landing (v3.0 banner + Demo Mode badge) | No |
+| `/interview` | Core interview practice (5 STAR questions) | No |
+| `/interview/[sessionId]` | Run session, submit answers, view report | No |
+| `/settings` | API key (BYOK) + 一鍵刪除 session | No |
+| `/report/[id]` | View past report | No |
+| `/pricing` | Pricing plans (Pro / Campus / Consultant) | No |
+| `/dashboard` | Usage history (Chrome extension users) | Optional |
+| `/sign-in` `/sign-up` `/login` `/register` | Mock auth (P2 升級路徑) | No |
+
+> **為什麼所有頁面都不要求登入?** v3.0 SPEC §17.1:「先讓使用者完成一個真實 job,再要求註冊」。3 次免費額度用完才顯示 paywall。
 
 ## Architecture
 
 ```
 Next.js 14 (App Router)
-├── Clerk v5 (authentication)
-├── Tailwind CSS (styling)
-├── Web Speech API (voice recognition + TTS)
-├── OpenAI GPT-4o (via server-side proxy)
-├── localStorage (user-provided API key + usage history)
-└── Vercel (deployment)
+├── app/lib/llm/        # v3.0 router + Mock/BYOK providers + auto-degrade
+├── app/lib/session/    # anonymous cuid + quota + deleteSession
+├── Tailwind CSS
+├── OpenAI GPT-4o (BYOK, server-side proxy via x-api-key)
+├── localStorage (session + quota + events)
+└── Vercel (production) + GitHub Pages (static mirror)
 ```
 
-## Pricing Tiers
+API routes:
+- `POST /api/interview/start` — start 5-question session (Mock or BYOK)
+- `POST /api/interview/answer` — evaluate answer (auto-degrade on LLM failure)
+- `POST /api/interview/end` — final report with 5-dimension radar
+- `POST /api/analyze` — single-question instant analysis (Mock or BYOK)
+- `POST /api/test-key` — validate user's OpenAI key (BYOK setup)
 
-| Feature | Free | Pro ($9/mo) | Business ($29/mo) |
-|---------|------|-------------|-------------------|
-| Voice recognition | ✓ | ✓ | ✓ |
-| AI answer suggestions | ✓ | ✓ | ✓ |
-| History limit | 20 | 200 | Unlimited |
-| Languages | EN | EN/ZH/JP/KR | All |
-| Export reports | — | ✓ | ✓ |
-| Team sharing | — | — | ✓ |
+## Acceptance Criteria (20 條)
 
-## Development
+詳見 [SPEC §18](PRD/SPEC.md#18-可量測的-mvp-完成度契約-v30-新增) 與 `scripts/verify-mvp.sh`。
 
-```bash
-# Build for production
-npm run build
+| AC | 內容 | 驗證 |
+|---|---|---|
+| AC-011 | `/api/interview/start` 不傳 apiKey 回 mock 5 題 | `curl -X POST /api/interview/start -d '{}'` |
+| AC-013 | Mock mode footer 顯示 Demo Mode 字串 | `curl / \| grep "Demo Mode (Mock)"` |
+| AC-014 | Settings 可切換 Mock ↔ BYOK | 瀏覽器手動測試 |
+| AC-015 | 首次進站不跳登入牆 | `curl / \| grep -v "sign-in"` |
+| AC-016 | localStorage 出現 `aiia.session.uid` | DevTools → Application → Local Storage |
+| AC-017 | 完成 3 次後出現 paywall modal | DevTools 手動跑 3 次 end |
+| AC-018 | Settings 刪除 session 按鈕清空 localStorage | `delete-session-btn` click → 檢查 |
 
-# Start production server
-npm start
-```
+## Deployment
 
-## Environment Variables
+- **Vercel**: push to `master` (此 repo **未綁 GitHub webhook**,需手動 `npx vercel deploy --prod`)
+- **GitHub Pages**: `.github/workflows/deploy.yml` 跑 `GITHUB_PAGES=1 npm run build` 推到 `gh-pages` branch
+- **環境變數**: v3.0 MVP 不需要任何 env var
 
-| Variable | Description |
-|----------|-------------|
-| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk publishable key |
-| `CLERK_SECRET_KEY` | Clerk secret key |
-| `NEXT_PUBLIC_CLERK_SIGN_IN_URL` | Sign in page URL |
-| `NEXT_PUBLIC_CLERK_SIGN_UP_URL` | Sign up page URL |
-| `NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL` | Redirect after sign in |
-| `NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL` | Redirect after sign up |
+## SPEC 版本歷程
+
+- **v3.0** (2026-08-08) — 補 §16/§17/§18/§19 實作契約,新增 Mock+BYOK 雙模式、anonymous-first session、可量測驗證。sweet=5 不變。
+- v2.2.1 (2026-07-19) — Sweet-spot rewrite
+- v1.0 (2026-04-03) — 初版
 
 ## License
 

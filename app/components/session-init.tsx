@@ -1,10 +1,10 @@
 'use client';
 // app/components/session-init.tsx
-// v3.0 SPEC §17 anonymous-first + Consent
+// v3.0 SPEC §17 anonymous-first + Consent + Paywall + Delete listener
 
 import { useEffect, useState } from 'react';
-import { getOrCreateSession, setConsent, logEvent, SESSION_KEY } from '@/app/lib/session/session';
-import { readQuota, remainingFree, FREE_TIER_LIMIT } from '@/app/lib/session/quota';
+import { getOrCreateSession, setConsent, logEvent } from '@/app/lib/session/session';
+import { FREE_TIER_LIMIT, remainingFree } from '@/app/lib/session/quota';
 
 export default function SessionInit() {
   const [showConsent, setShowConsent] = useState(false);
@@ -12,6 +12,7 @@ export default function SessionInit() {
   const [freeLeft, setFreeLeft] = useState<number>(FREE_TIER_LIMIT);
   const [uid, setUid] = useState<string>('');
 
+  // 開站初始化 session + 決定要不要顯示 consent
   useEffect(() => {
     const sess = getOrCreateSession();
     setUid(sess.uid);
@@ -21,9 +22,23 @@ export default function SessionInit() {
       setShowConsent(true);
     }
 
-    const onQuotaChange = () => setFreeLeft(remainingFree());
+    const onQuotaChange = () => {
+      const left = remainingFree();
+      setFreeLeft(left);
+      // AC-017: 額度歸 0 → 顯示 paywall
+      if (left === 0) setShowPaywall(true);
+    };
+    const onSessionDeleted = () => {
+      setFreeLeft(remainingFree());
+      setShowPaywall(false);
+    };
+
     window.addEventListener('aiia:quota-changed', onQuotaChange);
-    return () => window.removeEventListener('aiia:quota-changed', onQuotaChange);
+    window.addEventListener('aiia:session-deleted', onSessionDeleted);
+    return () => {
+      window.removeEventListener('aiia:quota-changed', onQuotaChange);
+      window.removeEventListener('aiia:session-deleted', onSessionDeleted);
+    };
   }, []);
 
   const handleAccept = () => {
@@ -73,9 +88,14 @@ export default function SessionInit() {
       )}
 
       {showPaywall && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+        <div
+          role="dialog"
+          aria-label="升級 Pro 或匯出"
+          data-testid="paywall-modal"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+        >
           <div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-6 max-w-md w-full">
-            <h2 className="text-xl font-semibold text-zinc-50 mb-2">已用完 3 次免費練習</h2>
+            <h2 className="text-xl font-semibold text-zinc-50 mb-2">已用完 {FREE_TIER_LIMIT} 次免費練習</h2>
             <p className="text-sm text-zinc-400 mb-4">
               升級 Pro 解鎖完整功能，或匯出你目前的練習資料。
             </p>
