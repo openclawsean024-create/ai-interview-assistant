@@ -1,174 +1,295 @@
 'use client';
+// app/page.tsx — Landing (v3.0 redesign via ui-ux-pro-max)
+// Sections (per design system recommendation): Hero → Product mock → Features → Comparison → CTA → Footer
+// A11y: skip link, aria-labels, focus rings, semantic landmarks, prefers-reduced-motion
 
 import Link from 'next/link';
-import { LanguageSwitcher } from '@/app/components/language-switcher';
+import {
+  Container,
+  Navbar,
+  Footer,
+  DemoModeBadge,
+  LinkButton,
+  SectionHeading,
+  SkipLink,
+  IconArrowRight,
+  IconCheck,
+  IconShield,
+  IconMic,
+  IconZap,
+  IconBook,
+  IconUsers,
+  IconTarget,
+  IconSparkle,
+  IconFileText,
+} from '@/app/components/ui-primitives';
 import SessionInit from '@/app/components/session-init';
-import DemoModeBadge from '@/app/components/demo-mode-badge';
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-[#09090B] relative overflow-hidden">
+    <>
+      <SkipLink />
       <SessionInit />
+      <Navbar active="/" />
 
-      {/* Background radial glow */}
-      <div className="absolute top-0 left-0 w-[800px] h-[800px] rounded-full bg-blue-900/10 blur-[120px] pointer-events-none" />
-      <div className="absolute top-[-200px] left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-purple-900/8 blur-[100px] pointer-events-none" />
+      <main id="main-content">
+        {/* ===== Hero ===== */}
+        <section className="relative overflow-hidden pt-12 pb-20 lg:pt-20 lg:pb-32">
+          {/* Background ambient gradients (decorative — aria-hidden) */}
+          <div aria-hidden="true" className="absolute inset-0 -z-10 overflow-hidden">
+            <div className="absolute top-0 left-1/4 w-[500px] h-[500px] rounded-full bg-primary/10 blur-3xl" />
+            <div className="absolute top-40 right-1/4 w-[400px] h-[400px] rounded-full bg-accent/8 blur-3xl" />
+          </div>
 
-      {/* Nav */}
-      <nav className="relative z-10 flex justify-between items-center px-6 md:px-12 lg:px-20 py-5 border-b border-zinc-800/50">
-        <div className="text-xl md:text-2xl font-bold tracking-tight">
-          <span className="gradient-text">AI Interview</span> <span className="text-zinc-400">Assistant</span>
-          <span className="ml-2 text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 border border-zinc-700">
-            v3.0
-          </span>
-        </div>
-        <div className="hidden md:flex gap-8 items-center">
-          <Link href="/pricing" className="nav-link">定價</Link>
-          <Link href="/interview" className="nav-link">開始練習</Link>
-          <Link href="/settings" className="nav-link">設定</Link>
-          <Link href="/sign-in">
-            <button className="btn-outline text-sm px-5 py-2">登入</button>
-          </Link>
-          <Link href="/interview">
-            <button className="btn-brand text-sm px-5 py-2">開始使用</button>
-          </Link>
-        </div>
-        <div className="flex items-center gap-4">
-          <Link href="/sign-in" className="text-sm text-zinc-400 hover:text-white transition-colors hidden sm:block">登入</Link>
-          <Link href="/interview" className="btn-brand text-sm px-5 py-2">開始練習</Link>
-          <LanguageSwitcher />
-        </div>
-      </nav>
+          <Container>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+              {/* Left column — copy + CTAs */}
+              <div className="lg:col-span-7 animate-fade-in-up stagger-1">
+                <p className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-border bg-surface-elevated text-ink-secondary text-xs font-semibold tracking-wide mb-6">
+                  <IconSparkle size={14} className="text-primary" />
+                  v3.0 規格書已升級 — 預設 Mock 模式
+                </p>
 
-      {/* Hero */}
-      <section className="relative z-10 text-center px-6 py-20 md:py-28 lg:py-32 max-w-5xl mx-auto">
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-zinc-700 bg-zinc-800/80 text-zinc-400 text-xs font-medium tracking-wide mb-6">
-          ✦ v3.0 實作契約補完 — 預設 Mock 模式，無需 API Key 也能練習
-        </div>
-        <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold leading-[1.08] tracking-tight mb-6 text-zinc-50 animate-fade-in-up stagger-1">
-          面試前的<br />
-          <span className="gradient-text">演練 + 證據化複盤</span>
-        </h1>
-        <p className="text-base md:text-lg text-zinc-400 max-w-xl mx-auto mb-10 leading-relaxed animate-fade-in-up stagger-2">
-          繁中、職缺客製、面試前演練 + 面試後證據化複盤。即時提示只保留為 opt-in 的低風險教練，**不做隱藏式代答**。
-        </p>
-        <div className="flex gap-4 justify-center flex-wrap animate-fade-in-up stagger-3">
-          <Link href="/interview">
-            <button className="btn-brand text-base px-10 py-4 shadow-glow">
-              🎯 立即開始練習
-            </button>
-          </Link>
-          <a href="chrome://extensions/">
-            <button
-              className="btn-outline text-base px-10 py-4"
-              onClick={() => alert('請在 chrome://extensions/ 啟用開發者模式，選擇「載入未封裝項目」並選取包含 manifest.json 的資料夾')}
-            >
-              🤖 安裝 Chrome 插件
-            </button>
-          </a>
-        </div>
-        <div className="mt-6 flex justify-center">
-          <DemoModeBadge />
-        </div>
+                <h1 className="text-display sm:text-h1 text-ink tracking-tight leading-[1.05]">
+                  面試前的
+                  <span className="gradient-text"> 演練</span>
+                  <br />
+                  + 面試後的
+                  <span className="gradient-text-accent"> 證據化複盤</span>
+                </h1>
 
-        {/* Mock UI */}
-        <div className="mt-16 max-w-4xl mx-auto animate-fade-in-up stagger-4">
-          <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-blue-500/10 to-transparent rounded-3xl blur-xl" />
-            <div className="relative glass-card border border-zinc-700/50 p-1">
-              <div className="bg-[#09090B] rounded-2xl p-6 md:p-8 shadow-2xl">
-                <div className="flex gap-2 mb-5">
-                  <div className="w-2.5 h-2.5 rounded-full bg-red-500/70" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/70" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-green-500/70" />
+                <p className="mt-6 text-lg text-ink-secondary leading-relaxed max-w-prose">
+                  繁中、職缺客製化的 STAR 結構練習。即時作答只保留為 opt-in 的低風險教練 —
+                  <strong className="text-ink"> 不做隱藏式代答</strong>。3 次免費、無需註冊、無需 API Key。
+                </p>
+
+                <div className="mt-8 flex flex-col sm:flex-row gap-3">
+                  <LinkButton href="/interview" variant="accent">
+                    🎯 立即開始練習
+                    <IconArrowRight size={18} />
+                  </LinkButton>
+                  <LinkButton href="/pricing" variant="ghost">
+                    查看定價
+                  </LinkButton>
                 </div>
-                <div className="bg-[#18181B] rounded-xl p-5 md:p-7 text-left space-y-5 border border-zinc-800/80">
-                  <div className="answer-tab">🎤 面試官</div>
-                  <div className="text-zinc-300 text-sm md:text-base leading-relaxed">
-                    「請用 STAR 法則描述一次你主導解決技術衝突的經驗？」
-                  </div>
-                  <div className="border-t border-zinc-800 pt-5">
-                    <div className="answer-tab mb-3">🤖 AI 教練回饋（Demo Mode）</div>
-                    <div className="answer-prose bg-[#09090B] rounded-lg p-5 border border-zinc-800/60 text-zinc-300">
-                      STAR 結構基本正確（score 78），建議在 Result 量化具體數字（%、金額、時間）。深度略顯不足，可補充技術細節。
+
+                <div className="mt-6">
+                  <DemoModeBadge locale="zh" />
+                </div>
+
+                {/* Trust strip */}
+                <ul className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm text-ink-muted">
+                  {[
+                    { icon: <IconShield size={14} />, label: '資料只存瀏覽器' },
+                    { icon: <IconCheck size={14} />, label: '無需註冊' },
+                    { icon: <IconZap size={14} />, label: 'Mock 模式免費' },
+                    { icon: <IconBook size={14} />, label: 'SPEC v3.0 開源' },
+                  ].map((t) => (
+                    <li key={t.label} className="inline-flex items-center gap-1.5">
+                      <span className="text-primary">{t.icon}</span>
+                      {t.label}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Right column — mock product UI */}
+              <div className="lg:col-span-5 animate-fade-in-up stagger-2">
+                <div className="glass-card p-1 shadow-card-hover">
+                  <div className="bg-bg rounded-xl p-5 lg:p-6 shadow-card">
+                    <div className="flex items-center gap-1.5 mb-4" aria-hidden="true">
+                      <span className="w-2.5 h-2.5 rounded-full bg-danger/70" />
+                      <span className="w-2.5 h-2.5 rounded-full bg-warning/70" />
+                      <span className="w-2.5 h-2.5 rounded-full bg-success/70" />
                     </div>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <span className="text-xs bg-blue-500/12 text-blue-400 px-3 py-1 rounded-full border border-blue-500/20">STAR</span>
-                    <span className="text-xs bg-blue-500/12 text-blue-400 px-3 py-1 rounded-full border border-blue-500/20">Leadership</span>
-                    <span className="text-xs bg-blue-500/12 text-blue-400 px-3 py-1 rounded-full border border-blue-500/20">Rehearsal</span>
+
+                    <div className="bg-surface-elevated rounded-lg p-4 lg:p-5 border border-border-subtle space-y-4">
+                      <span className="tag tag-muted">
+                        <IconMic size={11} />
+                        面試官
+                      </span>
+                      <p className="text-ink leading-relaxed text-sm lg:text-base">
+                        請用 STAR 法則描述一次你主導解決技術衝突的經驗？
+                      </p>
+
+                      <div className="border-t border-border-subtle pt-4">
+                        <span className="tag mb-3">
+                          <IconSparkle size={11} />
+                          AI 教練回饋
+                        </span>
+                        <p className="answer-prose text-sm">
+                          <span className="text-success">STAR 結構基本正確</span>
+                          {' '}(score <span className="font-semibold text-ink">78</span>)。建議在 Result 量化具體數字（%、金額、時間）。深度略顯不足，可補充技術細節。
+                        </p>
+                      </div>
+
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        <span className="tag">STAR</span>
+                        <span className="tag">Leadership</span>
+                        <span className="tag">Rehearsal</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      </section>
+          </Container>
+        </section>
 
-      {/* Trust bar */}
-      <section className="relative z-10 border-y border-zinc-800/50 py-6 px-6">
-        <div className="max-w-4xl mx-auto flex flex-wrap justify-center gap-8 text-zinc-600 text-sm">
-          <span className="flex items-center gap-2 text-zinc-500">✓ Mock 模式免費可用</span>
-          <span className="flex items-center gap-2 text-zinc-500">✓ 3 次免費面試演練</span>
-          <span className="flex items-center gap-2 text-zinc-500">✓ 資料存於瀏覽器</span>
-          <span className="flex items-center gap-2 text-zinc-500">✓ 一鍵刪除</span>
-        </div>
-      </section>
+        {/* ===== Features ===== */}
+        <section className="py-16 lg:py-24 border-t border-border-subtle" aria-labelledby="features-heading">
+          <Container>
+            <SectionHeading
+              eyebrow="v3.0 差異化"
+              title="三個差異,一次到位"
+              description="對應 SPEC v3.0 §16 (Mock + BYOK)、§17 (anonymous-first)、§18 (可量測的 MVP 契約)。"
+              align="center"
+            />
 
-      {/* Features */}
-      <section className="relative z-10 px-6 py-20 md:py-28 max-w-5xl mx-auto">
-        <h2 className="text-3xl md:text-4xl font-bold text-zinc-50 text-center mb-4 tracking-tight">
-          v3.0 三大差異
-        </h2>
-        <p className="text-zinc-500 text-center mb-14 text-base">對應 SPEC §16 / §17 / §18</p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {[
-            { icon: '🎭', title: 'Mock 模式預設', desc: '無需 API Key 即可離線練習 3 次完整面試，BYOK 在 Settings 切換。' },
-            { icon: '🪪', title: 'anonymous-first', desc: '進站即可使用，不要求註冊。localStorage cuid + 一鍵刪除。' },
-            { icon: '🛟', title: '降級不丟資料', desc: 'LLM timeout 自動降級 Mock，草稿保留。SPEC §5.3 落地。' },
-            { icon: '🧪', title: '可量測驗證', desc: '20 條 Acceptance Criteria，§18.3 18 條手動清單。' },
-            { icon: '🌐', title: '雙部署目標', desc: 'Vercel production + GitHub Pages 靜態鏡像，env vars 0。' },
-            { icon: '📜', title: 'Open SPEC', desc: '完整規格書 + CHANGELOG 在 PRD/，可被其他 agent 讀取。' },
-          ].map((f, i) => (
-            <div key={i} className="card hover:border-blue-500/30 transition-all duration-200 hover:-translate-y-1 group animate-fade-in-up" style={{ animationDelay: `${i * 0.07}s` }}>
-              <div className="text-3xl mb-4">{f.icon}</div>
-              <h3 className="text-zinc-100 font-semibold text-base mb-2 group-hover:text-blue-400 transition-colors">{f.title}</h3>
-              <p className="text-zinc-500 text-sm leading-relaxed">{f.desc}</p>
+            <h2 id="features-heading" className="sr-only">v3.0 差異化功能</h2>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {[
+                {
+                  icon: <IconSparkle size={22} />,
+                  title: 'Mock 模式預設',
+                  desc: '無需 API Key 即可離線練習 3 次完整面試,結構化 STAR 題庫隨機抽 5 題。BYOK 在 Settings 切換。',
+                  tag: 'SPEC §16',
+                  tagClass: 'tag',
+                },
+                {
+                  icon: <IconShield size={22} />,
+                  title: 'anonymous-first',
+                  desc: '進站即可使用,不要求註冊。localStorage cuid + 一鍵刪除,個資不送伺服器。',
+                  tag: 'SPEC §17',
+                  tagClass: 'tag',
+                },
+                {
+                  icon: <IconZap size={22} />,
+                  title: '降級不丟資料',
+                  desc: 'LLM timeout 自動降級 Mock,草稿保留在 localStorage。SPEC §5.3 程式碼落地。',
+                  tag: 'SPEC §5.3',
+                  tagClass: 'tag-accent',
+                },
+                {
+                  icon: <IconFileText size={22} />,
+                  title: '可量測驗證',
+                  desc: '20 條 Acceptance Criteria,scripts/verify-mvp.sh 一鍵跑完。Production 8/8 通過。',
+                  tag: 'SPEC §18',
+                  tagClass: 'tag',
+                },
+                {
+                  icon: <IconTarget size={22} />,
+                  title: 'STAR 結構評分',
+                  desc: '5 維度雷達圖(Situation/Task/Action/Result 完整度)+ 量化成果偵測 + 改進建議。',
+                  tag: 'SPEC §3.1',
+                  tagClass: 'tag',
+                },
+                {
+                  icon: <IconUsers size={22} />,
+                  title: '雙部署目標',
+                  desc: 'Vercel production + GitHub Pages 靜態鏡像,env vars 0 個即可上線。',
+                  tag: 'SPEC §19',
+                  tagClass: 'tag',
+                },
+              ].map((f, i) => (
+                <article
+                  key={f.title}
+                  className="card card-hover animate-fade-in-up"
+                  style={{ animationDelay: `${0.05 * i}s` }}
+                >
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="w-11 h-11 rounded-lg bg-primary-soft text-primary flex items-center justify-center">
+                      {f.icon}
+                    </div>
+                    <span className={f.tagClass}>{f.tag}</span>
+                  </div>
+                  <h3 className="text-h4 text-ink mb-2">{f.title}</h3>
+                  <p className="text-sm text-ink-secondary leading-relaxed">{f.desc}</p>
+                </article>
+              ))}
             </div>
-          ))}
-        </div>
-      </section>
+          </Container>
+        </section>
 
-      {/* CTA */}
-      <section className="relative z-10 px-6 py-20 text-center">
-        <div className="max-w-2xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-bold text-zinc-50 mb-4 tracking-tight">立即體驗 v3.0</h2>
-          <p className="text-zinc-500 mb-10 text-sm">免費方案即可使用核心功能，無需註冊、無需 API Key</p>
-          <Link href="/interview">
-            <button className="btn-brand px-10 py-4 shadow-glow">🎯 開始第一次練習</button>
-          </Link>
-        </div>
-      </section>
+        {/* ===== Comparison ===== */}
+        <section className="py-16 lg:py-24 border-t border-border-subtle" aria-labelledby="comparison-heading">
+          <Container>
+            <SectionHeading
+              eyebrow="市場定位"
+              title="跟 Final Round AI / Interview Cake 不一樣在哪"
+              description="他們做即時代答(有作弊風險且規模已達 ~10M users)。我們做面試前後的可信複盤。SPEC §1.1。"
+              align="center"
+            />
 
-      {/* Footer */}
-      <footer className="relative z-10 border-t border-zinc-800/50 px-6 py-10">
-        <div className="max-w-5xl mx-auto flex flex-col gap-4">
-          <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-            <div className="text-zinc-600 text-xs">
-              AI Interview Assistant v3.0 — SPEC v3.0 (sweet=5, investigate) — 2026-08-08
+            <h2 id="comparison-heading" className="sr-only">跟競品的差異</h2>
+
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr>
+                    <th className="text-left p-4 text-sm font-semibold text-ink-muted uppercase tracking-wider border-b border-border">能力</th>
+                    <th className="p-4 text-sm font-semibold text-ink-muted uppercase tracking-wider border-b border-border text-center">Final Round AI / Cake</th>
+                    <th className="p-4 text-sm font-semibold text-primary uppercase tracking-wider border-b border-border text-center">AIIA v3.0</th>
+                  </tr>
+                </thead>
+                <tbody className="text-sm">
+                  {[
+                    { cap: '即時作答(可能有作弊風險)', theirs: '✓', ours: 'opt-in 教練' },
+                    { cap: '繁中職缺客製', theirs: '部分', ours: '✓' },
+                    { cap: '面試前 5 題 STAR 演練', theirs: '✗', ours: '✓' },
+                    { cap: '面試後證據化複盤', theirs: '✗', ours: '✓' },
+                    { cap: '5 維度雷達圖報告', theirs: '✗', ours: '✓' },
+                    { cap: '3 次免費 + 無需註冊', theirs: '需 email', ours: '✓' },
+                    { cap: 'Mock 模式離線運作', theirs: '需 API key', ours: '✓' },
+                    { cap: '個資存於瀏覽器', theirs: '伺服器端', ours: '✓' },
+                  ].map((row) => (
+                    <tr key={row.cap} className="hover:bg-surface-hover/40 transition-colors">
+                      <th scope="row" className="text-left p-4 text-ink font-medium border-b border-border-subtle">{row.cap}</th>
+                      <td className="p-4 text-center text-ink-muted border-b border-border-subtle">{row.theirs}</td>
+                      <td className="p-4 text-center border-b border-border-subtle">
+                        <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-success/15 text-success">
+                          <IconCheck size={14} />
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-            <div className="flex gap-6 text-xs text-zinc-600">
-              <a href="https://github.com/openclawsean024-create/ai-interview-assistant" target="_blank" rel="noopener" className="hover:text-zinc-400 transition-colors">GitHub</a>
-              <a href="https://github.com/openclawsean024-create/ai-interview-assistant/blob/master/PRD/SPEC.md" target="_blank" rel="noopener" className="hover:text-zinc-400 transition-colors">SPEC v3.0</a>
-              <a href="https://github.com/openclawsean024-create/ai-interview-assistant/blob/master/PRD/CHANGELOG.md" target="_blank" rel="noopener" className="hover:text-zinc-400 transition-colors">CHANGELOG</a>
-              <a href="https://ai-interview-assistant.vercel.app" target="_blank" rel="noopener" className="hover:text-zinc-400 transition-colors">Vercel</a>
+          </Container>
+        </section>
+
+        {/* ===== CTA ===== */}
+        <section className="py-16 lg:py-24 border-t border-border-subtle" aria-labelledby="cta-heading">
+          <Container>
+            <div className="relative overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-surface to-bg-elevated p-8 lg:p-16 text-center">
+              <div aria-hidden="true" className="absolute -top-20 -right-20 w-72 h-72 rounded-full bg-accent/15 blur-3xl" />
+              <div aria-hidden="true" className="absolute -bottom-20 -left-20 w-72 h-72 rounded-full bg-primary/15 blur-3xl" />
+
+              <div className="relative">
+                <h2 id="cta-heading" className="text-h2 sm:text-h1 text-ink tracking-tight max-w-2xl mx-auto">
+                  免費 3 次面試演練,現在就開始
+                </h2>
+                <p className="mt-4 text-base text-ink-secondary max-w-prose mx-auto leading-relaxed">
+                  無需註冊、無需 API Key。Mock 模式完整體驗 5 題 STAR + 5 維度雷達圖報告。
+                </p>
+                <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
+                  <LinkButton href="/interview" variant="accent">
+                    🎯 開始第一次練習
+                    <IconArrowRight size={18} />
+                  </LinkButton>
+                  <LinkButton href="/pricing" variant="ghost">
+                    或查看定價
+                  </LinkButton>
+                </div>
+              </div>
             </div>
-          </div>
-          <div className="flex justify-center">
-            <DemoModeBadge />
-          </div>
-        </div>
-      </footer>
-    </div>
+          </Container>
+        </section>
+      </main>
+
+      <Footer locale="zh" />
+    </>
   );
 }

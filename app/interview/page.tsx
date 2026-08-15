@@ -17,6 +17,27 @@ import {
   type Language,
   type Question,
 } from './components/questionBank';
+import {
+  Navbar,
+  Footer,
+  PageHeader,
+  Container,
+  DemoModeBadge,
+  Modal,
+  SkipLink,
+  IconCheck,
+  IconKey,
+  IconMic,
+  IconClock,
+  IconDownload,
+  IconX,
+  IconBook,
+  IconFileText,
+  IconSparkle,
+  IconTarget,
+  IconArrowRight,
+} from '@/app/components/ui-primitives';
+import SessionInit from '@/app/components/session-init';
 
 interface Message {
   question: string;
@@ -397,90 +418,76 @@ export default function InterviewPage() {
 
   if (!isLoaded) {
     return (
-      <div className="min-h-screen bg-[#09090B] flex items-center justify-center">
-        <div className="text-blue-400 animate-pulse text-sm">{t.interview.loading}</div>
+      <div className="min-h-screen flex items-center justify-center bg-bg">
+        <div className="flex items-center gap-3 text-primary">
+          <span className="status-dot status-dot-info animate-pulse-glow" />
+          <span className="text-sm font-medium">{t.interview.loading}</span>
+        </div>
       </div>
     );
   }
 
   if (!isSignedIn) {
     return (
-      <div className="min-h-screen bg-[#09090B] flex flex-col items-center justify-center gap-4">
-        <div className="text-5xl mb-2">🔒</div>
-        <p className="text-zinc-500 text-sm">{t.interview.loginRequired}</p>
-        <Link href="/sign-in">
-          <button className="btn-brand">{t.interview.goToSignIn}</button>
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-bg p-6">
+        <div className="w-14 h-14 rounded-full bg-warning/15 text-warning flex items-center justify-center mb-1">
+          <IconKey size={26} />
+        </div>
+        <h2 className="text-xl font-semibold text-ink">{t.interview.loginRequired}</h2>
+        <Link href="/sign-in" className="btn-primary mt-3">
+          {t.interview.goToSignIn}
+          <IconArrowRight size={16} />
         </Link>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#09090B]">
-      {/* Nav */}
-      <nav className="relative z-10 flex justify-between items-center px-6 md:px-12 lg:px-20 py-4 border-b border-zinc-800/50">
-        <Link href="/" className="text-xl font-bold tracking-tight text-zinc-50">
-          <span className="gradient-text">AI Interview</span>
-        </Link>
-        <div className="hidden md:flex gap-6 items-center">
-          <LanguageSwitcher />
-          <Link href="/dashboard" className="nav-link">{t.nav.dashboard}</Link>
-          <Link href="/interview" className="nav-link nav-link-active">{t.nav.interview}</Link>
-          <Link href="/pricing" className="nav-link">{t.nav.pricing}</Link>
-          <Link href="/settings" className="nav-link">{t.nav.settings}</Link>
-        </div>
-        <button
-          className="md:hidden text-zinc-400 p-2"
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-        >
-          {mobileMenuOpen ? '✕' : '☰'}
-        </button>
-      </nav>
+    <div className="min-h-screen flex flex-col">
+      <SkipLink />
+      <SessionInit />
+      <Navbar active="/interview" locale={isEnglish ? 'en' : 'zh'} />
 
-      {/* Mobile menu */}
-      {mobileMenuOpen && (
-        <div className="md:hidden flex flex-col gap-3 px-6 py-4 border-b border-zinc-800/50 bg-[#09090B]">
-          <LanguageSwitcher />
-          <Link href="/dashboard" className="nav-link" onClick={() => setMobileMenuOpen(false)}>{t.nav.dashboard}</Link>
-          <Link href="/interview" className="nav-link nav-link-active" onClick={() => setMobileMenuOpen(false)}>{t.nav.interview}</Link>
-          <Link href="/pricing" className="nav-link" onClick={() => setMobileMenuOpen(false)}>{t.nav.pricing}</Link>
-          <Link href="/settings" className="nav-link" onClick={() => setMobileMenuOpen(false)}>{t.nav.settings}</Link>
-        </div>
-      )}
-
-      <div className="max-w-6xl mx-auto px-6 md:px-8 lg:px-12 py-8">
+      <Container className="py-8 lg:py-10">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6">
 
           {/* Main Panel */}
           <div className="animate-fade-in-up">
             <div className="flex items-center gap-3 mb-1">
-              <h1 className="text-2xl font-bold text-zinc-50 tracking-tight">{t.interview.title}</h1>
+              <h1 className="text-h2 sm:text-h1 text-ink tracking-tight">{t.interview.title}</h1>
+              <DemoModeBadge locale={isEnglish ? 'en' : 'zh'} />
             </div>
-            <p className="text-zinc-500 text-sm mb-6">
+            <p className="text-ink-secondary text-sm mb-6 max-w-prose">
               {t.interview.subtitle}
             </p>
 
             {/* Mode Tabs */}
-            <div className="flex gap-2 mb-6">
+            <div role="tablist" aria-label={isEnglish ? 'Practice mode' : '練習模式'} className="inline-flex gap-2 p-1 rounded-xl bg-surface-elevated border border-border-subtle mb-6">
               <button
+                role="tab"
+                aria-selected={mode === 'practice'}
                 onClick={() => { setMode('practice'); setToolPanel('none'); }}
-                className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all border ${
+                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all flex items-center gap-2 ${
                   mode === 'practice'
-                    ? 'bg-blue-500/15 border-blue-500/40 text-blue-300'
-                    : 'bg-zinc-800/50 border-zinc-700/40 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'
+                    ? 'bg-primary text-white shadow-glow-primary'
+                    : 'text-ink-secondary hover:text-ink hover:bg-surface-hover'
                 }`}
               >
-                🎤 {t.interview.mode.practice}
+                <IconMic size={16} aria-hidden="true" />
+                {t.interview.mode.practice}
               </button>
               <button
+                role="tab"
+                aria-selected={mode === 'questionBank'}
                 onClick={() => { setMode('questionBank'); setToolPanel('none'); }}
-                className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all border ${
+                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all flex items-center gap-2 ${
                   mode === 'questionBank'
-                    ? 'bg-blue-500/15 border-blue-500/40 text-blue-300'
-                    : 'bg-zinc-800/50 border-zinc-700/40 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'
+                    ? 'bg-primary text-white shadow-glow-primary'
+                    : 'text-ink-secondary hover:text-ink hover:bg-surface-hover'
                 }`}
               >
-                📚 {t.interview.mode.questionBank}
+                <IconBook size={16} aria-hidden="true" />
+                {t.interview.mode.questionBank}
               </button>
             </div>
 
@@ -489,18 +496,22 @@ export default function InterviewPage() {
               <div className="space-y-4 mb-6">
                 <div className="card">
                   <div className="mb-4">
-                    <h2 className="text-base font-semibold text-zinc-200 mb-1">{t.interview.questionBank.title}</h2>
-                    <p className="text-xs text-zinc-500">{t.interview.questionBank.subtitle}</p>
+                    <h2 className="text-h4 text-ink mb-1 flex items-center gap-2">
+                      <IconFileText size={18} className="text-primary" aria-hidden="true" />
+                      {t.interview.questionBank.title}
+                    </h2>
+                    <p className="text-xs text-ink-muted">{t.interview.questionBank.subtitle}</p>
                   </div>
 
                   {/* Filters */}
                   <div className="flex flex-wrap gap-3 mb-4">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-zinc-500">{t.interview.questionBank.filterType}:</span>
+                      <label htmlFor="qb-type" className="text-xs text-ink-muted">{t.interview.questionBank.filterType}:</label>
                       <select
+                        id="qb-type"
                         value={bankFilterType}
                         onChange={(e) => setBankFilterType(e.target.value as QuestionType | 'all')}
-                        className="input-field w-auto min-w-[120px] text-xs"
+                        className="input-field w-auto min-w-[140px] text-xs"
                       >
                         <option value="all">{t.interview.questionBank.allTypes}</option>
                         <option value="technical">{isEnglish ? QUESTION_TYPE_LABELS.technical.en : QUESTION_TYPE_LABELS.technical.zh}</option>
@@ -510,72 +521,80 @@ export default function InterviewPage() {
                       </select>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-zinc-500">{t.interview.questionBank.filterLang}:</span>
+                      <label htmlFor="qb-lang" className="text-xs text-ink-muted">{t.interview.questionBank.filterLang}:</label>
                       <select
+                        id="qb-lang"
                         value={bankFilterLang}
                         onChange={(e) => setBankFilterLang(e.target.value as Language | 'all')}
-                        className="input-field w-auto min-w-[100px] text-xs"
+                        className="input-field w-auto min-w-[110px] text-xs"
                       >
                         <option value="all">{t.interview.questionBank.allLangs}</option>
-                        <option value="en">🇺🇸 English</option>
-                        <option value="zh">🇹🇼 中文</option>
+                        <option value="en">English</option>
+                        <option value="zh">中文</option>
                       </select>
                     </div>
                   </div>
 
                   {/* Question count */}
-                  <div className="text-xs text-zinc-600 mb-3">
+                  <div className="text-xs text-ink-muted mb-3">
                     {filteredQuestions.length} {isEnglish ? 'questions' : '題'}
                   </div>
 
                   {/* Question list */}
                   {filteredQuestions.length === 0 ? (
-                    <div className="text-center py-8 text-zinc-600 text-sm">
+                    <div className="text-center py-8 text-ink-muted text-sm">
                       {t.interview.questionBank.noQuestions}
                     </div>
                   ) : (
                     <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
-                      {filteredQuestions.map((q) => (
-                        <div
-                          key={q.id}
-                          onClick={() => handleSelectQuestion(q)}
-                          className={`p-3 rounded-lg border cursor-pointer transition-all text-sm ${
-                            bankSelected?.id === q.id
-                              ? 'bg-blue-500/10 border-blue-500/40'
-                              : 'bg-zinc-800/40 border-zinc-700/30 hover:border-blue-500/25 hover:bg-zinc-800/70'
-                          }`}
-                        >
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="flex-1 min-w-0">
-                              <div className="text-zinc-200 text-xs leading-relaxed">{q.question}</div>
-                              <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
-                                  q.type === 'technical' ? 'bg-blue-500/15 text-blue-300' :
-                                  q.type === 'behavioral' ? 'bg-purple-500/15 text-purple-300' :
-                                  q.type === 'system-design' ? 'bg-amber-500/15 text-amber-300' :
-                                  'bg-emerald-500/15 text-emerald-300'
-                                }`}>
-                                  {isEnglish ? QUESTION_TYPE_LABELS[q.type].en : QUESTION_TYPE_LABELS[q.type].zh}
-                                </span>
-                                <span className="text-[10px] text-zinc-600">
-                                  {q.language === 'en' ? '🇺🇸 EN' : '🇹🇼 ZH'}
-                                </span>
-                              </div>
-                              {q.hint && bankSelected?.id === q.id && (
-                                <div className="mt-2 text-[10px] text-zinc-500 bg-zinc-900/60 rounded p-2">
-                                  💡 {t.interview.questionBank.hint}: {q.hint}
+                      {filteredQuestions.map((q) => {
+                        const isSelected = bankSelected?.id === q.id;
+                        const typeColor =
+                          q.type === 'technical' ? 'tag' :
+                          q.type === 'behavioral' ? 'tag-accent' :
+                          q.type === 'system-design' ? 'tag-muted' :
+                          'tag';
+                        return (
+                          <div
+                            key={q.id}
+                            onClick={() => handleSelectQuestion(q)}
+                            role="button"
+                            tabIndex={0}
+                            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleSelectQuestion(q); } }}
+                            aria-pressed={isSelected}
+                            className={`p-3 rounded-lg border cursor-pointer transition-all text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+                              isSelected
+                                ? 'bg-primary/10 border-primary/40'
+                                : 'bg-surface border-border-subtle hover:border-primary/30 hover:bg-surface-hover'
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex-1 min-w-0">
+                                <div className="text-ink text-xs leading-relaxed">{q.question}</div>
+                                <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                                  <span className={typeColor}>
+                                    {isEnglish ? QUESTION_TYPE_LABELS[q.type].en : QUESTION_TYPE_LABELS[q.type].zh}
+                                  </span>
+                                  <span className="text-[10px] text-ink-muted">
+                                    {q.language === 'en' ? 'EN' : 'ZH'}
+                                  </span>
                                 </div>
-                              )}
+                                {q.hint && isSelected && (
+                                  <div className="mt-2 text-[10px] text-ink-secondary bg-surface-elevated rounded p-2">
+                                    💡 {t.interview.questionBank.hint}: {q.hint}
+                                  </div>
+                                )}
+                              </div>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleSelectQuestion(q); }}
+                                className="flex-shrink-0 text-xs px-3 py-1.5 rounded-md bg-primary/15 text-primary hover:bg-primary/25 transition-colors font-medium"
+                              >
+                                {t.interview.questionBank.startPractice}
+                              </button>
                             </div>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); handleSelectQuestion(q); }}
-                              className="flex-shrink-0 text-xs px-2 py-1 rounded bg-blue-500/15 text-blue-300 hover:bg-blue-500/25 transition-all"
-                            >
-                              {t.interview.questionBank.startPractice}
-                            </button>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -583,11 +602,12 @@ export default function InterviewPage() {
                 {/* Selected question AI analysis */}
                 {bankSelected && (
                   <div className="card">
-                    <div className="text-xs text-zinc-500 mb-2">{t.interview.questionLabel}</div>
-                    <div className="text-sm text-zinc-200 mb-4 leading-relaxed">{bankSelected.question}</div>
+                    <div className="text-xs text-ink-muted mb-2">{t.interview.questionLabel}</div>
+                    <div className="text-sm text-ink mb-4 leading-relaxed">{bankSelected.question}</div>
                     {!apiKeyConfigured && (
-                      <button onClick={handleKeySetup} className="btn-outline text-xs">
-                        🔑 {t.interview.apiKeyNotSet}
+                      <button onClick={handleKeySetup} className="btn-ghost text-xs">
+                        <IconKey size={14} />
+                        {t.interview.apiKeyNotSet}
                       </button>
                     )}
                   </div>
@@ -599,18 +619,23 @@ export default function InterviewPage() {
             {mode === 'practice' && (
               <>
                 {/* Status bar */}
-                <div className="flex items-center gap-3 mb-5 px-4 py-3 bg-zinc-900/70 rounded-xl border border-zinc-800/60">
+                <div className="flex items-center gap-3 mb-5 px-4 py-3 bg-surface-elevated rounded-xl border border-border-subtle">
                   <div className={getStatusDotClass()} />
-                  <span className="text-zinc-400 text-sm font-medium">{status}</span>
+                  <span className="text-ink-secondary text-sm font-medium">{status}</span>
                   {isListening && (
-                    <span className="ml-auto text-red-400 text-xs animate-pulse">● REC</span>
+                    <span className="ml-auto inline-flex items-center gap-1.5 text-danger text-xs font-semibold animate-pulse-glow">
+                      <span className="status-dot status-dot-danger animate-listening" />
+                      REC
+                    </span>
                   )}
                 </div>
 
                 {/* Input form */}
                 <form onSubmit={handleSubmit} className="mb-5">
+                  <label htmlFor="question-input" className="sr-only">{placeholder}</label>
                   <div className="flex flex-col sm:flex-row gap-2">
                     <input
+                      id="question-input"
                       type="text"
                       value={question}
                       onChange={(e) => setQuestion(e.target.value)}
@@ -620,58 +645,72 @@ export default function InterviewPage() {
                     />
                     <button
                       type="submit"
-                      className="btn-brand whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="btn-primary whitespace-nowrap"
                       disabled={isAnalyzing || !question.trim()}
                     >
-                      {isAnalyzing ? t.interview.analyzing : t.interview.analyze}
+                      {isAnalyzing ? (
+                        <>
+                          <span className="status-dot status-dot-info animate-pulse-glow" />
+                          {t.interview.analyzing}
+                        </>
+                      ) : (
+                        <>
+                          <IconSparkle size={16} />
+                          {t.interview.analyze}
+                        </>
+                      )}
                     </button>
                   </div>
                 </form>
 
                 {/* Controls */}
                 <div className="flex flex-wrap gap-3 mb-6">
+                  <label htmlFor="recog-lang" className="sr-only">{isEnglish ? 'Recognition language' : '辨識語言'}</label>
                   <select
+                    id="recog-lang"
                     value={recognitionLang}
                     onChange={(e) => setRecognitionLang(e.target.value)}
-                    className="input-field w-auto min-w-[130px] text-sm"
+                    className="input-field w-auto min-w-[140px] text-sm"
                   >
-                    <option value="en-US">🇺🇸 English</option>
-                    <option value="zh-TW">🇹🇼 中文</option>
-                    <option value="zh-CN">🇨🇳 简体中文</option>
-                    <option value="ja-JP">🇯🇵 日本語</option>
-                    <option value="ko-KR">🇰🇷 한국어</option>
+                    <option value="en-US">English</option>
+                    <option value="zh-TW">中文 (繁體)</option>
+                    <option value="zh-CN">简体中文</option>
+                    <option value="ja-JP">日本語</option>
+                    <option value="ko-KR">한국어</option>
                   </select>
 
                   {isListening ? (
                     <button
                       onClick={stopListening}
-                      className="px-5 py-2.5 rounded-xl font-semibold text-sm text-white bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-red-500/25"
+                      className="btn-danger"
+                      aria-label={t.interview.stopListening}
                     >
+                      <IconMic size={16} />
                       {t.interview.stopListening}
                     </button>
                   ) : (
                     <button
                       onClick={() => startListening(recognitionLang)}
-                      className="btn-brand"
+                      className="btn-accent"
                     >
+                      <IconMic size={16} />
                       {t.interview.startListening}
                     </button>
                   )}
 
                   <button
                     onClick={handleKeySetup}
-                    className={`px-5 py-2.5 rounded-xl font-semibold text-sm transition-all border ${
-                      apiKeyConfigured
-                        ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-                        : 'bg-white/5 border-white/10 text-red-400 hover:bg-red-500/10'
+                    className={`btn-ghost text-sm ${
+                      apiKeyConfigured ? 'border-success/40 text-success' : 'border-danger/40 text-danger'
                     }`}
                   >
-                    🔑 {apiKeyConfigured ? t.interview.apiKeySet : t.interview.apiKeyNotSet}
+                    <IconKey size={14} />
+                    {apiKeyConfigured ? t.interview.apiKeySet : t.interview.apiKeyNotSet}
                   </button>
 
                   {currentAnswer && (
-                    <button onClick={copyShareUrl} className="share-btn">
-                      {copied ? '✓ ' : '📋 '}
+                    <button onClick={copyShareUrl} className="btn-ghost text-sm">
+                      <IconCheck size={14} />
                       {copied ? (isEnglish ? 'Copied!' : '已複製！') : (isEnglish ? 'Copy Link' : '複製連結')}
                     </button>
                   )}
@@ -682,7 +721,7 @@ export default function InterviewPage() {
             {/* Answer Display (shared) */}
             <div className="card min-h-[300px]">
               {isAnalyzing ? (
-                <div className="space-y-4 py-4">
+                <div className="space-y-4 py-4" aria-busy="true" aria-live="polite">
                   <div className="skeleton skeleton-text w-1/4" />
                   <div className="skeleton skeleton-text w-full" />
                   <div className="skeleton skeleton-text w-3/4" />
@@ -693,32 +732,39 @@ export default function InterviewPage() {
                 <div className="space-y-5 animate-fade-in-up">
                   {question && (
                     <div>
-                      <div className="answer-tab mb-2">{t.interview.questionLabel}</div>
-                      <div className="text-zinc-300 text-sm leading-relaxed ml-0.5">{question}</div>
+                      <span className="tag tag-muted mb-2">
+                        <IconMic size={11} />
+                        {t.interview.questionLabel}
+                      </span>
+                      <div className="text-ink-secondary text-sm leading-relaxed ml-0.5">{question}</div>
                     </div>
                   )}
-                  <div className="border-t border-zinc-800 pt-5">
-                    <div className="answer-tab mb-3">{t.interview.answerLabel}</div>
-                    <div className="answer-prose bg-[#09090B] rounded-lg p-5 border border-zinc-800/60">
+                  <div className="border-t border-border-subtle pt-5">
+                    <span className="tag mb-3">
+                      <IconSparkle size={11} />
+                      {t.interview.answerLabel}
+                    </span>
+                    <div className="answer-prose bg-surface-elevated rounded-lg p-5 border border-border-subtle">
                       {mainAnswer}
                     </div>
                   </div>
 
                   {techTags.length > 0 && (
-                    <div className="border-t border-zinc-800 pt-4">
-                      <div className="answer-tab mb-3">{isEnglish ? 'Tech Keywords' : '技術標籤'}</div>
+                    <div className="border-t border-border-subtle pt-4">
+                      <span className="tag tag-accent mb-3">{isEnglish ? 'Tech Keywords' : '技術標籤'}</span>
                       <div className="flex flex-wrap gap-2">
                         {techTags.map((tag, i) => (
                           <div key={i} className="relative">
                             <button
                               onClick={() => toggleTagExpand(tag)}
-                              className={`tech-tag ${expandedTag === tag ? 'bg-blue-500/20 border-blue-500/40 text-blue-300' : ''}`}
+                              aria-expanded={expandedTag === tag}
+                              className={`tag ${expandedTag === tag ? 'bg-primary/25 border-primary/40' : ''} cursor-pointer`}
                             >
                               {tag}
                               <span className="text-xs opacity-60 ml-1">{expandedTag === tag ? '✕' : 'ℹ'}</span>
                             </button>
                             {expandedTag === tag && (
-                              <div className="tech-tag-expanded">
+                              <div className="mt-2 p-3 bg-primary/8 border border-primary/15 rounded-lg text-xs text-ink-secondary leading-relaxed">
                                 {TECH_TAG_DESCRIPTIONS[tag] || (isEnglish ? 'Technical concept related to the answer.' : '與答案相關的技術概念。')}
                               </div>
                             )}
@@ -731,24 +777,24 @@ export default function InterviewPage() {
                   <div className="flex flex-wrap gap-3">
                     <button
                       onClick={() => speakAnswer(currentAnswer)}
-                      className="btn-outline text-sm px-4 py-2"
+                      className="btn-ghost text-sm"
                     >
                       {t.interview.readAnswer}
                     </button>
                   </div>
 
                   {currentSources.length > 0 && (
-                    <div className="border-t border-zinc-800 pt-4">
-                      <div className="answer-tab mb-2">{t.interview.referencesLabel}</div>
+                    <div className="border-t border-border-subtle pt-4">
+                      <span className="tag tag-muted mb-3">{t.interview.referencesLabel}</span>
                       {currentSources.map((s, i) => (
                         <a
                           key={i}
                           href={s.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center gap-2 text-blue-400 text-xs mb-2 hover:text-blue-300 transition-colors group"
+                          className="flex items-center gap-2 text-primary text-xs mb-2 hover:text-primary-300 transition-colors group"
                         >
-                          <span className="text-zinc-600 group-hover:text-blue-400">→</span>
+                          <IconArrowRight size={12} className="text-ink-muted group-hover:text-primary" />
                           <span className="truncate">{s.title}</span>
                         </a>
                       ))}
@@ -756,77 +802,68 @@ export default function InterviewPage() {
                   )}
 
                   {followUpHint && (
-                    <div className="mt-2 p-4 bg-amber-500/5 rounded-xl border border-amber-500/15">
-                      <div className="answer-tab mb-2 bg-amber-500/10 text-amber-400">{t.interview.followUpLabel}</div>
-                      <div className="text-zinc-400 text-sm leading-relaxed">{followUpHint}</div>
+                    <div className="mt-2 p-4 bg-warning/8 rounded-xl border border-warning/20">
+                      <span className="tag tag-accent mb-2">{t.interview.followUpLabel}</span>
+                      <div className="text-ink-secondary text-sm leading-relaxed">{followUpHint}</div>
                     </div>
                   )}
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
-                  <div className="text-5xl mb-1">{t.interview.emptyTitle}</div>
-                  <p className="text-zinc-500 text-sm">{t.interview.emptyText}</p>
-                  <p className="text-zinc-600 text-xs">{t.interview.emptySubtext}</p>
+                  <div className="w-14 h-14 rounded-full bg-surface-elevated text-ink-muted flex items-center justify-center mb-1">
+                    <IconSparkle size={28} />
+                  </div>
+                  <p className="text-ink font-medium">{t.interview.emptyTitle}</p>
+                  <p className="text-ink-secondary text-sm max-w-sm">{t.interview.emptyText}</p>
+                  <p className="text-ink-muted text-xs max-w-sm">{t.interview.emptySubtext}</p>
                 </div>
               )}
             </div>
           </div>
 
           {/* Sidebar: Tools + History */}
-          <div className="animate-fade-in-up stagger-2 space-y-4">
+          <aside aria-label={isEnglish ? 'Practice tools and history' : '練習工具與歷史'} className="animate-fade-in-up stagger-2 space-y-4">
             {/* v5 Tool Buttons */}
-            <div className="space-y-2">
-              <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wider px-1">
+            <div>
+              <h2 className="text-xs font-semibold text-ink-muted uppercase tracking-wider px-1 mb-2">
                 {isEnglish ? 'Practice Tools' : '練習工具'}
-              </div>
+              </h2>
               <div className="grid grid-cols-3 gap-2">
-                <button
-                  onClick={() => setToolPanel(toolPanel === 'timer' ? 'none' : 'timer')}
-                  className={`p-3 rounded-xl border text-center transition-all ${
-                    toolPanel === 'timer'
-                      ? 'bg-amber-500/10 border-amber-500/30 text-amber-300'
-                      : 'bg-zinc-800/50 border-zinc-700/40 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'
-                  }`}
-                >
-                  <div className="text-lg mb-1">⏱️</div>
-                  <div className="text-xs font-medium">{isEnglish ? 'Timer' : '計時器'}</div>
-                </button>
-                <button
-                  onClick={() => setToolPanel(toolPanel === 'video' ? 'none' : 'video')}
-                  className={`p-3 rounded-xl border text-center transition-all ${
-                    toolPanel === 'video'
-                      ? 'bg-blue-500/10 border-blue-500/30 text-blue-300'
-                      : 'bg-zinc-800/50 border-zinc-700/40 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'
-                  }`}
-                >
-                  <div className="text-lg mb-1">📹</div>
-                  <div className="text-xs font-medium">{isEnglish ? 'Video' : '錄影'}</div>
-                </button>
-                <button
-                  onClick={() => setToolPanel(toolPanel === 'rating' ? 'none' : 'rating')}
-                  className={`p-3 rounded-xl border text-center transition-all ${
-                    toolPanel === 'rating'
-                      ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
-                      : 'bg-zinc-800/50 border-zinc-700/40 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'
-                  }`}
-                >
-                  <div className="text-lg mb-1">📋</div>
-                  <div className="text-xs font-medium">{isEnglish ? 'Rating' : '評分'}</div>
-                </button>
+                {[
+                  { key: 'timer',  icon: <IconClock size={20} />,    label: isEnglish ? 'Timer' : '計時器' },
+                  { key: 'video',  icon: <IconFileText size={20} />, label: isEnglish ? 'Video' : '錄影' },
+                  { key: 'rating', icon: <IconTarget size={20} />,    label: isEnglish ? 'Rating' : '評分' },
+                ].map((tool) => (
+                  <button
+                    key={tool.key}
+                    onClick={() => setToolPanel(toolPanel === tool.key ? 'none' : (tool.key as 'timer' | 'video' | 'rating'))}
+                    aria-pressed={toolPanel === tool.key}
+                    className={`p-3 rounded-xl border text-center transition-all flex flex-col items-center gap-1 ${
+                      toolPanel === tool.key
+                        ? 'bg-primary/15 border-primary/40 text-primary'
+                        : 'bg-surface border-border-subtle text-ink-secondary hover:bg-surface-hover hover:text-ink'
+                    }`}
+                  >
+                    {tool.icon}
+                    <div className="text-xs font-medium">{tool.label}</div>
+                  </button>
+                ))}
               </div>
             </div>
 
             {/* Tool Panel Content */}
             {toolPanel === 'timer' && (
-              <div className="card">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="text-sm font-semibold text-amber-300">{t.interview.timer.title}</div>
-                  <button
-                    onClick={() => setToolPanel('none')}
-                    className="ml-auto text-zinc-500 hover:text-zinc-300 text-xs"
-                  >
-                    ✕
-                  </button>
+              <div className="card relative">
+                <button
+                  onClick={() => setToolPanel('none')}
+                  className="btn-icon absolute top-2 right-2"
+                  aria-label={isEnglish ? 'Close timer' : '關閉計時器'}
+                >
+                  <IconX size={14} />
+                </button>
+                <div className="text-sm font-semibold text-warning mb-3 flex items-center gap-2">
+                  <IconClock size={16} />
+                  {t.interview.timer.title}
                 </div>
                 <Timer
                   initialMinutes={3}
@@ -837,30 +874,34 @@ export default function InterviewPage() {
             )}
 
             {toolPanel === 'video' && (
-              <div className="card">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="text-sm font-semibold text-blue-300">{t.interview.video.title}</div>
-                  <button
-                    onClick={() => setToolPanel('none')}
-                    className="ml-auto text-zinc-500 hover:text-zinc-300 text-xs"
-                  >
-                    ✕
-                  </button>
+              <div className="card relative">
+                <button
+                  onClick={() => setToolPanel('none')}
+                  className="btn-icon absolute top-2 right-2"
+                  aria-label={isEnglish ? 'Close video' : '關閉錄影'}
+                >
+                  <IconX size={14} />
+                </button>
+                <div className="text-sm font-semibold text-primary mb-3 flex items-center gap-2">
+                  <IconFileText size={16} />
+                  {t.interview.video.title}
                 </div>
                 <VideoSimulation isEnglish={isEnglish} />
               </div>
             )}
 
             {toolPanel === 'rating' && (
-              <div className="card">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="text-sm font-semibold text-emerald-300">{t.interview.rating.title}</div>
-                  <button
-                    onClick={() => setToolPanel('none')}
-                    className="ml-auto text-zinc-500 hover:text-zinc-300 text-xs"
-                  >
-                    ✕
-                  </button>
+              <div className="card relative">
+                <button
+                  onClick={() => setToolPanel('none')}
+                  className="btn-icon absolute top-2 right-2"
+                  aria-label={isEnglish ? 'Close rating' : '關閉評分'}
+                >
+                  <IconX size={14} />
+                </button>
+                <div className="text-sm font-semibold text-success mb-3 flex items-center gap-2">
+                  <IconTarget size={16} />
+                  {t.interview.rating.title}
                 </div>
                 <RatingForm isEnglish={isEnglish} onSubmit={handleRatingSubmit} />
               </div>
@@ -868,10 +909,12 @@ export default function InterviewPage() {
 
             {/* History */}
             <div>
-              <h2 className="text-sm font-semibold text-zinc-300 mb-4 tracking-wide uppercase text-xs">{t.interview.historyTitle}</h2>
+              <h2 className="text-xs font-semibold text-ink-muted uppercase tracking-wider px-1 mb-3">
+                {t.interview.historyTitle}
+              </h2>
               {history.length === 0 ? (
-                <div className="text-center py-12 text-zinc-600 text-sm">
-                  <div className="text-3xl mb-2">📭</div>
+                <div className="text-center py-10 text-ink-muted text-sm">
+                  <IconFileText size={32} className="mx-auto mb-2 opacity-40" />
                   <div>{t.interview.noHistory}</div>
                 </div>
               ) : (
@@ -887,12 +930,13 @@ export default function InterviewPage() {
                         setExpandedTag(null);
                         setMode('practice');
                       }}
-                      className="text-left p-3 bg-zinc-900/60 border border-zinc-800/50 rounded-xl hover:border-blue-500/30 transition-all group"
+                      className="text-left p-3 bg-surface border border-border-subtle rounded-xl hover:border-primary/40 hover:bg-surface-hover transition-all group"
                     >
-                      <div className="text-xs text-blue-400/80 mb-1 truncate font-medium group-hover:text-blue-300">
+                      <div className="text-xs text-primary mb-1 truncate font-medium group-hover:text-primary-300">
                         Q: {h.question.slice(0, 55)}{h.question.length > 55 ? '...' : ''}
                       </div>
-                      <div className="text-[10px] text-zinc-600">
+                      <div className="text-[10px] text-ink-muted flex items-center gap-1">
+                        <IconClock size={10} />
                         {new Date(h.createdAt).toLocaleString(isEnglish ? 'en-US' : 'zh-TW', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                       </div>
                     </button>
@@ -917,60 +961,56 @@ export default function InterviewPage() {
                     a.download = 'interview-history.txt';
                     a.click();
                   }}
-                  className="mt-4 w-full py-2.5 bg-zinc-800/50 border border-zinc-700/40 rounded-xl text-zinc-400 text-xs hover:bg-zinc-800 hover:text-zinc-200 transition-all"
+                  className="mt-4 w-full btn-ghost text-xs"
                 >
+                  <IconDownload size={14} />
                   {t.interview.exportHistory}
                 </button>
               )}
             </div>
-          </div>
+          </aside>
         </div>
-      </div>
+      </Container>
+
+      <Footer locale={isEnglish ? 'en' : 'zh'} />
 
       {/* API Key Modal */}
-      {showApiKeyModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-6 w-full max-w-md mx-4 shadow-2xl">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-zinc-100">🔑 {isEnglish ? 'Set API Key' : '設定 API Key'}</h3>
-              <button
-                onClick={() => setShowApiKeyModal(false)}
-                className="text-zinc-500 hover:text-zinc-300 text-lg"
-              >
-                ✕
-              </button>
-            </div>
-            <p className="text-zinc-400 text-sm mb-4">
-              {isEnglish
-                ? 'Enter your OpenAI API Key to enable AI analysis. Your key is stored locally and never sent to our servers.'
-                : '輸入你的 OpenAI API Key 以啟用 AI 分析。你的 Key 只會儲存在本機，不會傳送到我們的伺服器。'}
-            </p>
-            <input
-              type="password"
-              value={apiKeyInput}
-              onChange={(e) => setApiKeyInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') saveApiKeyFromModal(); }}
-              placeholder="sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-              className="input-field w-full mb-4 text-sm"
-              autoFocus
-            />
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowApiKeyModal(false)}
-                className="flex-1 py-2.5 bg-zinc-800 border border-zinc-700 text-zinc-300 rounded-xl text-sm font-medium hover:bg-zinc-700 transition-all"
-              >
-                {isEnglish ? 'Cancel' : '取消'}
-              </button>
-              <button
-                onClick={saveApiKeyFromModal}
-                className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-500 transition-all"
-              >
-                {isEnglish ? 'Save & Connect' : '儲存並連線'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <Modal
+        open={showApiKeyModal}
+        onClose={() => setShowApiKeyModal(false)}
+        title={isEnglish ? 'Set API Key' : '設定 API Key'}
+        description={isEnglish
+          ? 'Enter your OpenAI API Key to enable AI analysis. Your key is stored locally and never sent to our servers.'
+          : '輸入你的 OpenAI API Key 以啟用 AI 分析。你的 Key 只會儲存在本機，不會傳送到我們的伺服器。'}
+        actions={
+          <>
+            <button
+              onClick={() => setShowApiKeyModal(false)}
+              className="btn-ghost flex-1"
+            >
+              {isEnglish ? 'Cancel' : '取消'}
+            </button>
+            <button
+              onClick={saveApiKeyFromModal}
+              className="btn-primary flex-1"
+            >
+              {isEnglish ? 'Save & Connect' : '儲存並連線'}
+            </button>
+          </>
+        }
+      >
+        <label htmlFor="api-key-input" className="sr-only">API Key</label>
+        <input
+          id="api-key-input"
+          type="password"
+          value={apiKeyInput}
+          onChange={(e) => setApiKeyInput(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') saveApiKeyFromModal(); }}
+          placeholder="sk-…"
+          className="input-field w-full text-sm"
+          autoFocus
+        />
+      </Modal>
     </div>
   );
 }
