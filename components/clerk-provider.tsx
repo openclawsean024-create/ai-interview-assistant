@@ -1,6 +1,6 @@
 'use client';
 
-import { ClerkProvider as ClerkReactProvider } from '@clerk/clerk-react';
+import { ClerkProvider } from '@clerk/nextjs';
 import { useState, useEffect } from 'react';
 
 // Fallback publishable key for when env var is not set
@@ -17,8 +17,8 @@ export default function ClerkLoader({ children }: { children: React.ReactNode })
   }, []);
 
   return (
-    <ClerkReactProvider publishableKey={clerkKey}>
+    <ClerkProvider publishableKey={clerkKey}>
       {children}
-    </ClerkReactProvider>
+    </ClerkProvider>
   );
 }
