@@ -2,7 +2,8 @@
 
 - Project：AI 面試演練與複盤
 - Repo：`openclawsean024-create/ai-interview-assistant`（預設分支 `master`）
-- State：🟡 **M1 開發完成；本機 lint／typecheck／unit／build 已在最終提交通過，E2E 最終確認以 PR 上的 CI 為準（本機磁碟空間不足，見下方）；等待 Sean 覆審（Exit gate）** — 2026-11-16
+- State：🟢 **M1 開發完成；SOP 全部檢查（含 E2E 14/14）在 PR #2 的 CI 上通過；等待 Sean 覆審（Exit gate）** — 2026-11-16
+- PR：[#2](https://github.com/openclawsean024-create/ai-interview-assistant/pull/2)（Draft，base `master`）
 - 分支：`feat/m1`（自 `chore/prd-rebuild` @ `fe0e682` 分出；PR #1 尚未合併）
 - Spec：`PRD/SPEC.md` v4.0；Goal：`GOAL.md`（M1）；Rubric：`PRD/RUBRIC.md` v1.0.0
 - Stack：Next.js 14.2.5 + React 18 + TypeScript 5 + Tailwind 3；localStorage；Mock／BYOK AI provider；Vitest 2 + Playwright
@@ -53,14 +54,14 @@ lint、typecheck、test、build 與各項 grep／憑證檢查是在程式最終�
 | `npm run typecheck` | 0 | `tsc --noEmit` 無型別錯誤（含 `tests/`、`e2e/`；`strict: false`） |
 | `npm test` | 0 | Vitest：8 個測試檔、143 個測試全部通過 |
 | `npm run build` | 0 | Next.js production build 成功 |
-| `npm run e2e` | 見下方 | **本機未能在最終提交上完成**：磁碟只剩約 100–170MB，14 個測試中 4 個（AC-004 題庫篩選、AC-006 練習閉環、AC-007 擴充功能 404、AC-008 一鍵刪除）因 `ENOSPC` 寫不進 trace／下載檔而失敗，錯誤皆為 ENOSPC、不是斷言失敗。在磁碟有空間、只差文件與兩處樣式修正的前一版程式上，14 個全部通過。**最終結果以 PR 上 GitHub Actions「CI」的 E2E 步驟為準** |
+| `npm run e2e` | 0（CI） | **CI（PR #2，run 43756985917，commit `c6a446b`）：14 passed (24.4s)**。本機最終提交上未能完成：磁碟只剩約 100–170MB，14 個測試中 4 個（AC-004 題庫篩選、AC-006 練習閉環、AC-007 擴充功能 404、AC-008 一鍵刪除）因 `ENOSPC` 寫不進 trace／下載檔而失敗，錯誤皆為 ENOSPC、不是斷言失敗。在磁碟有空間、只差文件與兩處樣式修正的前一版程式上，14 個全部通過。**最終結果以 PR 上 GitHub Actions「CI」的 E2E 步驟為準** |
 | `git diff --check` | 0 | 工作樹無 whitespace 錯誤；`git diff --check origin/master...HEAD` 也 exit 0 |
 | `bash scripts/check-credentials.sh` | 0 | 未發現真實憑證樣式 |
 | `bash scripts/verify-mvp.sh http://localhost:3111` | 0 | 本機 `next start` 下 8 passed／0 failed（選用的 API smoke，在前一版程式執行） |
 | `grep -rn "api.openai.com" app/api` | 1 | 無結果（外部端點只在 `app/lib/llm/byok-provider.ts`） |
 | `git ls-files public \| grep -E "manifest.json\|sidePanel\|content.js\|background.js\|popup"` | 1 | 無結果 |
 | `grep -n "不上 server\|不送伺服器" README.md app/components/session-init.tsx` | 1 | 無結果 |
-| GitHub Actions「CI」 | 見 PR | lint → typecheck → test → build → e2e 全套在 Ubuntu／Node 20 上執行；結果以 PR 頁面為準 |
+| GitHub Actions「CI」（PR #2，run 43756985917，commit `c6a446b`） | 0 | Ubuntu／Node 20 上全部步驟通過（3m39s）：Lint（No ESLint warnings or errors）→ Typecheck → Unit／contract tests（8 個檔全部通過）→ Build → E2E（14 passed）→ 擴充功能不在 `public/`（AC-007）→ `app/api` 無外部 AI 端點（AC-002）→ 憑證掃描、`git diff --check origin/master...HEAD`（AC-010） |
 
 憑證掃描補充：GOAL 原始指令 `git grep -nE "sk-[A-Za-z0-9_-]{20,}|sk_live|pk_live" -- . ':!*lock*'` 的命中只有「寫出這個樣式本身」的檔案（`GOAL.md`、`scripts/check-credentials.sh`、`tests/unit/repo-hygiene.test.ts`），沒有任何憑證；測試與 E2E 使用的 key 只有 `sk-test-xxxx` 類佔位字串。
 
