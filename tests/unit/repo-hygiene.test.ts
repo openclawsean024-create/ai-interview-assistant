@@ -27,11 +27,22 @@ describe('AC-007 Chrome 擴充功能不隨 web 部署', () => {
     expect(tracked.some((f) => f.endsWith('.zip'))).toBe(false);
   });
 
-  it('AC-007: 擴充功能原始碼仍保留在 repo 根目錄（處置待 Sean 決定，未刪除）', () => {
-    for (const file of ['manifest.json', 'sidePanel.html', 'sidePanel.js', 'content.js', 'background.js', 'popup.html', 'popup.js']) {
-      expect(existsSync(file), `${file} 不應被刪除`).toBe(true);
+  // Sean 決定（2026-11-16）：擴充功能封存到獨立的 private archived repo，本 repo 不再保留任何擴充功能檔案。
+  it('AC-007: 擴充功能已封存移出 — repo 內（含 git 追蹤清單）沒有任何擴充功能檔案', () => {
+    const files = [
+      'manifest.json', 'sidePanel.html', 'sidePanel.js', 'content.js', 'background.js', 'popup.html', 'popup.js',
+      'ai-interview-assistant-chrome-extension.zip', 'icons/icon16.png', 'icons/icon48.png', 'icons/icon128.png',
+      'public/icons/icon16.png', 'public/icons/icon48.png', 'public/icons/icon128.png',
+    ];
+    for (const file of files) expect(existsSync(file), `${file} 應已移出`).toBe(false);
+    const tracked = git(['ls-files']).split('\n').filter(Boolean);
+    expect(tracked.filter((f) => /(^|\/)(manifest\.json|sidePanel\.|content\.js|background\.js|popup\.(html|js))$|chrome-extension\.zip$/.test(f))).toEqual([]);
+  });
+
+  it('AC-007: README 與 STATUS 記錄擴充功能的封存位置', () => {
+    for (const file of ['README.md', 'STATUS.md']) {
+      expect(readFileSync(file, 'utf8'), file).toContain('openclawsean024-create/ai-interview-assistant-chrome-extension');
     }
-    expect(existsSync('ai-interview-assistant-chrome-extension.zip')).toBe(true);
   });
 
   it('AC-007: web 程式碼不連結、不引用擴充功能檔案', () => {

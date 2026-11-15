@@ -202,7 +202,7 @@ AI 成本是 Notion 列出的主要風險之一：訂閱價格必須在 M2 以�
 - 所有 AI 呼叫統一經 `LlmProvider`；以 Mock 與「攔截網路的假 HTTP provider」驗證介面、降級與錯誤處理。
 - 題庫整合為單一來源並有 schema 驗證；Mock 評分改為明文、可重現的 rubric，回饋區分證據與建議。
 - UI 在無 key、無登入下走通「開始 → 5 題作答 → 結束 → 報告」。
-- 移除／停用代答型流程；Chrome 擴充功能不隨 web 部署。
+- 移除／停用代答型流程；Chrome 擴充功能不隨 web 部署（M1 已封存到獨立 repo）。
 - 一鍵刪除與同意文案與實際資料流一致。
 - 對應 FR：FR-001～FR-009。
 
@@ -261,10 +261,10 @@ AI 成本是 Notion 列出的主要風險之一：訂閱價格必須在 M2 以�
 
 ## 13. 待確認事項
 
-1. Chrome 擴充功能：刪除、封存到獨立 repo，或改造成「僅練習模式」？（M1 已讓它不隨 web 發佈：`public/` 內的複本已移除，repo 根目錄的原始檔與 zip 原封不動保留，待決定）
+1. ~~Chrome 擴充功能：刪除、封存到獨立 repo，或改造成「僅練習模式」？~~ **已決定（2026-11-16）：封存到獨立 repo。** 原檔案未經修改移到 private、archived 的 [`openclawsean024-create/ai-interview-assistant-chrome-extension`](https://github.com/openclawsean024-create/ai-interview-assistant-chrome-extension)，本 repo 已移除。
 2. `/api/analyze`（單題建議答案）是否整個移除，或改為「只給答題結構提示、不給內容」？（M1 暫行處置：介面入口全部停用；route 保留但只經 `LlmProvider` 回傳固定的結構提示，每則含「請用自己的話」，不呼叫外部 AI。最終去留待決定）
 3. 正式網址以哪一個 Vercel domain 為準；GitHub Pages 是否保留（目前持續失敗）。
 4. Lockfile 政策：保留 npm 或 pnpm 其一。
 5. 定價、成功指標目標值、企業招募方案內容。
 6. 競品規模與價格需重新查證後才可使用。
-7. repo 中的二進位檔（`AI_Interview_Assistant.pptx`、擴充功能 zip、`index.html.bak`）是否清理。
+7. repo 中的二進位檔（`AI_Interview_Assistant.pptx`、`index.html.bak`）是否清理（擴充功能 zip 已隨擴充功能封存移出）。

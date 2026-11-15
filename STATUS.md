@@ -21,7 +21,7 @@
 
 | # | 事項 | M1 暫行處置 | 待決定 |
 |---|---|---|---|
-| 1 | Chrome 擴充功能（面試中即時代答型態） | `public/` 內的 7 個複本（`manifest.json`、`sidePanel.html`、`sidePanel.js`、`content.js`、`background.js`、`popup.html`、`popup.js`）已移除，**不再隨網站部署**（E2E 驗證皆為 404）。repo 根目錄的原始檔（與 `public/` 複本逐位元相同）、`icons/`、`ai-interview-assistant-chrome-extension.zip` **原封不動保留、未修改** | 刪除、封存到獨立 repo，或改造成僅練習模式 |
+| 1 | ~~Chrome 擴充功能（面試中即時代答型態）~~ **已決定（2026-11-16）：封存到獨立 repo** | 7 個原始檔、`icons/`、`public/icons/`、`ai-interview-assistant-chrome-extension.zip` 已從本 repo 移除，未經修改封存於 private、archived（唯讀）的 [`openclawsean024-create/ai-interview-assistant-chrome-extension`](https://github.com/openclawsean024-create/ai-interview-assistant-chrome-extension)（來源 commit `60c788d`；本 repo 的 git 歷史仍保有完整紀錄） | — |
 | 2 | `/api/analyze`（原「單題建議答案」） | **介面上的入口已全部停用**（`/interview` 不再呼叫）。route **未刪除**，但改為只經 `LlmProvider.structureHint` 回傳固定的答題結構提示（每則含「請用自己的話」），忽略 request 中的 `apiKey`／`model`／`systemPrompt`，不呼叫任何外部 AI | 整個移除，或保留為結構提示 API |
 | 3 | 設定頁的語音辨識語言／TTS 速度／麥克風選項 | 隨代答流程一併移除（它們只服務「聆聽題目、朗讀答案」）；同時移除只在擴充功能環境有效的 `chrome.storage` 分支 | M2 做「語音作答逐字稿」（FR-015）時是否需要恢復麥克風設定 |
 | 4 | Google Fonts | 為了讓頁面零外部請求（AC-006 的驗證條件）而移除 `<link>`，改用系統字型堆疊；外觀字型會依作業系統不同 | 是否改為自行託管字型 |
@@ -36,7 +36,7 @@
 | AC-004 | 題庫單一來源與 schema 驗證；通用題 ≥ 46、職務題 ≥ 60、每個職務 × 職級 ≥ 5 | ✅ | `tests/unit/question-bank.test.ts`；題庫 111 題（通用 51、職務 60）；E2E 題庫篩選 |
 | AC-005 | 明文、可重現的 rubric；空白 0 分且不捏造；回饋分 `evidence`／`suggestions`；報告頁分開顯示 | ✅ | `tests/unit/rubric.test.ts`（8 則虛構 fixture：空白、只有空白、極短、無量化、完整 STAR、含數字、不確定語氣、英文）；`PRD/RUBRIC.md`；E2E 報告頁「可觀察證據」「建議」區塊 |
 | AC-006 | 無 key、無登入，從 `/interview` 走完 5 題 → `/report/[id]`（總分、雷達圖、逐題回饋、匯出 Markdown） | ✅ | `e2e/practice-loop.spec.ts`；非 localhost 請求次數斷言為 0 |
-| AC-007 | 移除聆聽 → 建議答案 → 朗讀流程；擴充功能不在 `public/`；`/api/analyze` 只回結構提示 | ✅（擴充功能最終處置待 Sean 決定） | `e2e/anti-proxy.spec.ts`、`tests/unit/repo-hygiene.test.ts`、`tests/unit/api-routes.test.ts`；`git ls-files public \| grep -E "manifest.json\|sidePanel\|content.js\|background.js\|popup"` 無結果（exit 1） |
+| AC-007 | 移除聆聽 → 建議答案 → 朗讀流程；擴充功能不在 `public/`；`/api/analyze` 只回結構提示 | ✅（擴充功能已封存移出） | `e2e/anti-proxy.spec.ts`、`tests/unit/repo-hygiene.test.ts`、`tests/unit/api-routes.test.ts`；`git ls-files public \| grep -E "manifest.json\|sidePanel\|content.js\|background.js\|popup"` 無結果（exit 1） |
 | AC-008 | 一鍵刪除清除全部 key（API key、session、報告、統計、歷史），顯示「已刪除」，Demo 模式標示回到無 key | ✅ | `e2e/delete-data.spec.ts`（寫入 `apikey_test`、`report_test`、`interview_session_test`、`usage_test`、`aiia.session` 等 15 個虛構 key 後點 `delete-session-btn`）；`tests/unit/storage.test.ts` |
 | AC-009 | 同意 modal 與 README 的說明與實際資料流一致 | ✅ | `e2e/consent.spec.ts`、`tests/unit/repo-hygiene.test.ts`；`grep -n "不上 server\|不送伺服器" README.md app/components/session-init.tsx` 無結果（exit 1） |
 | AC-010 | SOP 指令皆可執行並記錄 exit code；無真實憑證；fixture 只用虛構資料；`git diff --check` 通過 | ✅ | `tests/unit/repo-hygiene.test.ts`；`bash scripts/check-credentials.sh`；下方 Deterministic checks |
@@ -45,16 +45,16 @@
 
 ## Deterministic checks（2026-11-16，Node v26.13.1、npm 11.20.0、macOS arm64）
 
-lint、typecheck、test、build 與各項 grep／憑證檢查是在程式最終提交 `7e4c2aa`（工作樹乾淨）上執行的結果。之後的 commit 只修改本檔。
+本機結果是在擴充功能封存後的最終工作樹上執行（磁碟空間已恢復）。
 
 | Command | Exit | Evidence |
 |---|---:|---|
-| `npm ci` | 0 | 安裝完成（有 install-scripts 警告） |
+| `npm ci` | 0 | 在 `7e4c2aa` 上從乾淨狀態安裝完成（有 install-scripts 警告）；之後 `package.json`／lockfile 未再變更，CI 每次也都從 `npm ci` 開始 |
 | `npm run lint` | 0 | No ESLint warnings or errors |
 | `npm run typecheck` | 0 | `tsc --noEmit` 無型別錯誤（含 `tests/`、`e2e/`；`strict: false`） |
-| `npm test` | 0 | Vitest：8 個測試檔、143 個測試全部通過 |
+| `npm test` | 0 | Vitest：8 個測試檔、144 個測試全部通過 |
 | `npm run build` | 0 | Next.js production build 成功 |
-| `npm run e2e` | 0（CI） | **CI（PR #2，run 43756985917，commit `c6a446b`）：14 passed (24.4s)**。本機最終提交上未能完成：磁碟只剩約 100–170MB，14 個測試中 4 個（AC-004 題庫篩選、AC-006 練習閉環、AC-007 擴充功能 404、AC-008 一鍵刪除）因 `ENOSPC` 寫不進 trace／下載檔而失敗，錯誤皆為 ENOSPC、不是斷言失敗。在磁碟有空間、只差文件與兩處樣式修正的前一版程式上，14 個全部通過。**最終結果以 PR 上 GitHub Actions「CI」的 E2E 步驟為準** |
+| `npm run e2e` | 0 | Playwright（Chromium）：14 passed (13.6s)；外部請求次數 0。先前在 `7e4c2aa` 上本機曾因磁碟空間不足（ENOSPC）4 個失敗，不是斷言失敗；同一份程式在 CI（commit `c6a446b`、`60c788d`）也都 14 passed |
 | `git diff --check` | 0 | 工作樹無 whitespace 錯誤；`git diff --check origin/master...HEAD` 也 exit 0 |
 | `bash scripts/check-credentials.sh` | 0 | 未發現真實憑證樣式 |
 | `bash scripts/verify-mvp.sh http://localhost:3111` | 0 | 本機 `next start` 下 8 passed／0 failed（選用的 API smoke，在前一版程式執行） |
@@ -91,7 +91,7 @@ lint、typecheck、test、build 與各項 grep／憑證檢查是在程式最終�
 | FR-003 | rubric 評分與證據式回饋 | 已實作（M1，Mock rubric） |
 | FR-004 | 複盤報告與匯出 | 已實作（M1） |
 | FR-005 | AI 供應商抽象與降級 | 已實作（M1；正式付費 API 未接，屬 M2） |
-| FR-006 | 反代答設計 | 已實作（M1；擴充功能最終處置待決定） |
+| FR-006 | 反代答設計 | 已實作（M1；擴充功能已封存移出） |
 | FR-007 | 匿名使用與一鍵刪除 | 已實作（M1） |
 | FR-008 | 資料使用告知 | 已實作（M1） |
 | FR-009 | 自動化測試 | 已實作（M1） |

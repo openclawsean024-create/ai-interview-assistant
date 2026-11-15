@@ -81,10 +81,7 @@ API routes（全部只透過 `LlmProvider` 取得結果，route 內不直接呼�
 
 ## Chrome 擴充功能
 
-repo 根目錄的 `manifest.json`、`sidePanel.*`、`content.js`、`background.js`、`popup.*` 與 zip 是舊版 Chrome 擴充功能的原始檔。它屬於「面試中即時代答」型態，與本產品定位衝突：
-
-- 已自 `public/` 移除，**不隨網站部署**。
-- 原始檔暫時保留、未做任何修改；最終刪除或封存待決定（見 `STATUS.md`）。請勿安裝使用或對外散布。
+舊版 Chrome 擴充功能（在會議軟體中聆聽題目、產生並朗讀答案）屬於「面試中即時代答」型態，與本產品定位衝突，已在 M1 從本 repo 移除，原檔案未經修改封存於 private、archived（唯讀）的 [`openclawsean024-create/ai-interview-assistant-chrome-extension`](https://github.com/openclawsean024-create/ai-interview-assistant-chrome-extension)。它不隨網站部署、不再維護，請勿安裝或散布。
 
 ## Deployment
 

@@ -4,6 +4,7 @@
 
 - Single Source of Truth：[`PRD/SPEC.md`](./PRD/SPEC.md) v4.0；目前里程碑：[`GOAL.md`](./GOAL.md)（M1）。
 - 實作必須能對應到 SPEC §6 的 FR 編號與 GOAL 的 AC 編號。
+- 舊版 Chrome 擴充功能已封存到 private archived repo `openclawsean024-create/ai-interview-assistant-chrome-extension`，不得移回本 repo 或新增擴充功能功能。
 - **產品紅線：不得做隱藏式或面試進行中的即時代答**（聆聽面試官提問 → 自動產生答案 → 提示或朗讀）。任何練習提示必須由使用者在練習情境主動觸發，並提醒「請用自己的話」。
 - 不得做錄取預測、人格評斷，或宣稱提升錄取率。
 - M1 只用 Mock AI；正式付費 AI API、真實金流、真實帳號、雲端資料庫、真實個資一律不在 M1 範圍。
@@ -36,7 +37,6 @@ e2e/                          Playwright E2E
 middleware.ts                 安全 headers
 scripts/                      verify-mvp.sh（curl smoke）、check-credentials.sh（憑證掃描）
 PRD/SPEC.md  PRD/RUBRIC.md  PRD/CHANGELOG.md
-manifest.json sidePanel.* content.js background.js popup.* *.zip   舊版 Chrome 擴充功能原始檔（不在 public/、不隨 web 部署；處置待 Sean 決定，勿修改）
 ```
 
 ## 3. 技術棧

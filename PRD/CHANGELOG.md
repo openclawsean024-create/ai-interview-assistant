@@ -22,12 +22,12 @@
 
 ### Removed
 - web 端「輸入或語音聆聽題目 → 建議答案 → 朗讀 → 下一句提示」流程與其介面文案。（AC-007）
-- `public/` 內的 Chrome 擴充功能複本（`manifest.json`、`sidePanel.*`、`content.js`、`background.js`、`popup.*`）；repo 根目錄的原始檔與 zip 保留，處置待決定。（AC-007）
+- Chrome 擴充功能（根目錄 7 個原始檔、`icons/`、zip，以及 `public/` 內的複本與 `public/icons/`）：依 Sean 決定封存到 private、archived 的 [`openclawsean024-create/ai-interview-assistant-chrome-extension`](https://github.com/openclawsean024-create/ai-interview-assistant-chrome-extension)，本 repo 移除。（AC-007）
 - 設定頁的語音辨識語言／TTS 速度／麥克風選項，以及只在擴充功能環境有效的 `chrome.storage` 分支（對應的代答流程已移除）。
 - API route 中在伺服器端無作用的 `logEvent`／`getOrCreateSession` 呼叫。
 
 ### 待決定（未在 M1 處理）
-- Chrome 擴充功能原始檔的最終處置；`/api/analyze` 的去留（目前只回固定結構提示、介面入口停用）。
+- `/api/analyze` 的去留（目前只回固定結構提示、介面入口停用）。
 
 ---
 

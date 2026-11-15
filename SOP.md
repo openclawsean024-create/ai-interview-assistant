@@ -4,7 +4,7 @@
 
 - ✅ `PRD/SPEC.md` v4.0、`GOAL.md` 定義 M1；評分規則見 `PRD/RUBRIC.md`。
 - ✅ M1 已配置 `typecheck`、`test`、`e2e` scripts 與 CI（`.github/workflows/ci.yml`）。
-- ✅ web 端代答型流程已移除；Chrome 擴充功能不隨 web 部署（原始檔處置待 Sean 決定）。
+- ✅ web 端代答型流程已移除；Chrome 擴充功能已封存到獨立的 private archived repo，本 repo 不再含擴充功能檔案。
 - ⚠️ GitHub Pages workflow（`deploy.yml`）仍會在 push 到 `master` 時執行且先前持續失敗；Vercel 正式網址待確認。兩者都不在 M1 範圍。
 
 ## 環境
