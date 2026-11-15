@@ -4,6 +4,7 @@
 > 商業依據：Notion 資料庫「可產品化商品」中「AI 面試演練與複盤」一列（唯一商業依據）。
 > 程式依據：本文件「實作狀態」一律以 `master` @ `53a79b2` 的實際程式碼為準；v3.0 SPEC、README、CHANGELOG 與程式不一致之處列於 §12。
 > v3.0 的 sweet-spot 評分、訪談 SOP、失敗模式 playbook 等研究內容不再逐字保留，需查閱請看 git 歷史（commit `53a79b2` 之前的 `PRD/SPEC.md`）。
+> **M1 實作更新（2026-11-16，分支 `feat/m1`）**：§6 FR-001～FR-009 的狀態與 §12 已依 M1 實作結果更新；§5「現況實作盤點」保留為 M1 開工前（`53a79b2`）的基準紀錄，M1 之後的結構請看 `AGENTS.md` §2 與 `STATUS.md`。評分規則見 [`PRD/RUBRIC.md`](./RUBRIC.md)。
 
 ---
 
@@ -115,15 +116,15 @@ AI 成本是 Notion 列出的主要風險之一：訂閱價格必須在 M2 以�
 
 | ID | 需求 | 優先 | 狀態 | 依據／缺口 |
 |---|---|---|---|---|
-| FR-001 | 題庫：可依題型（技術／行為／情境／系統設計）、語言（zh／en）、職務與職級篩選題目，每題含提示 | P0 | 部分 | `questionBank.ts` 46 題可依題型、語言篩選；職務／職級題目另存在 `mock-provider.ts`（4 職務 × 3 職級 × 5 題），兩份資料未整合、無 schema 驗證 |
-| FR-002 | 結構化模擬面試：開始 → 逐題作答（預設 5 題）→ 結束，無 API key、無登入即可完成 | P0 | 部分 | API `start／answer／end` 在 Mock 模式可回應；UI 不會建立 session、作答需 API key、需假登入、`answer` 不回傳下一題，流程無法從 UI 走通 |
-| FR-003 | 逐題評分與回饋：依明文 rubric 給 5 維分數（結構、深度、相關性、清晰度、自信），回饋區分「可觀察證據」與「建議」；空回答給 0 分且不捏造內容 | P0 | 部分 | 5 維結構與空回答 0 分已實作；Mock 分數只依字數計算，無 rubric、無證據欄位 |
-| FR-004 | 複盤報告：總分、雷達圖、優點、改進點、逐題回饋，可匯出 Markdown | P0 | 部分 | `report/[id]` 已實作顯示與匯出；因 FR-002 未走通，實際無法從 UI 產生報告 |
-| FR-005 | AI 供應商抽象：所有 AI 呼叫經可替換介面；預設 Mock；正式供應商失敗時降級並標示 `degraded` | P0 | 部分 | `LlmProvider` + router 已實作於 `interview/*`；`/api/analyze` 繞過抽象層直呼 OpenAI；router 的「連續失敗強制 Mock 30 分鐘」在伺服器端讀寫 `window.localStorage`，實際不生效；無測試 |
-| FR-006 | 反代答設計：產品不提供「聆聽面試官提問 → 自動產生答案 → 朗讀」的面試中輔助；任何練習提示必須在練習情境、使用者主動觸發，並提醒「請用自己的話」 | P0 | 未實作 | 目前 `/interview` 語音聆聽會自動觸發建議答案並可朗讀；Chrome 擴充功能在會議網域運作。需移除或停用（見 §9） |
-| FR-007 | 匿名使用與一鍵刪除：無需註冊即可練習；設定頁一鍵刪除本產品在瀏覽器中的全部資料（含 API key、報告、session、歷史） | P0 | 部分 | 匿名 cuid 已實作；但主要頁面要求假登入；一鍵刪除只清 `aiia.*`，未清 `apikey_*`、`usage_*`、`report_*`、`interview_session_*`、`history_*` 等 |
-| FR-008 | 資料使用告知：首次使用顯示同意說明，文案需與實際資料流一致 | P0 | 部分 | 同意 modal 已實作；文案稱「資料只存在你的瀏覽器，不送伺服器」，但 BYOK 與 `/api/analyze` 會把題目、回答與 API key 送到本站 API 再轉送 OpenAI，文案不正確 |
-| FR-009 | 自動化測試：單元測試、API 契約測試、E2E 流程測試，可在 CI 重跑 | P0 | 未實作 | 無測試檔、無 `test` script |
+| FR-001 | 題庫：可依題型（技術／行為／情境／系統設計）、語言（zh／en）、職務與職級篩選題目，每題含提示 | P0 | 已實作（M1） | 單一題庫 `app/lib/questions/bank.ts`（通用 51 題 + 職務 × 職級 60 題）與 schema 驗證 `schema.ts`；`/interview` 題庫分頁可依題型、語言、職務、職級篩選 |
+| FR-002 | 結構化模擬面試：開始 → 逐題作答（預設 5 題）→ 結束，無 API key、無登入即可完成 | P0 | 已實作（M1） | `/interview` 選職務／職級後呼叫 `start`；`answer` 回傳下一題與 `isComplete`；主要頁面不再要求登入；E2E `practice-loop.spec.ts` |
+| FR-003 | 逐題評分與回饋：依明文 rubric 給 5 維分數（結構、深度、相關性、清晰度、自信），回饋區分「可觀察證據」與「建議」；空回答給 0 分且不捏造內容 | P0 | 已實作（M1，Mock） | rubric 見 [`PRD/RUBRIC.md`](./RUBRIC.md)、`app/lib/scoring/rubric.ts`；回應含 `evidence`／`suggestions`；限制：關鍵詞與格式規則，非語意理解 |
+| FR-004 | 複盤報告：總分、雷達圖、優點、改進點、逐題回饋，可匯出 Markdown | P0 | 已實作（M1） | `report/[id]` 可由 UI 流程產生，逐題分開顯示「可觀察證據」與「建議」，可匯出 Markdown |
+| FR-005 | AI 供應商抽象：所有 AI 呼叫經可替換介面；預設 Mock；正式供應商失敗時降級並標示 `degraded` | P0 | 已實作（M1；正式付費 API 未接） | 所有 route（含 `/api/analyze`、`/api/test-key`）只經 `LlmProvider`；router 為單一工廠，重試至多 1 次後降級並回 `degraded`／`degradedReason`；冷卻改為伺服器端記憶體（單一 process，serverless 多 instance 不共享）；契約與降級測試以假 `fetch` 驗證 |
+| FR-006 | 反代答設計：產品不提供「聆聽面試官提問 → 自動產生答案 → 朗讀」的面試中輔助；任何練習提示必須在練習情境、使用者主動觸發，並提醒「請用自己的話」 | P0 | 已實作（M1；擴充功能處置待決定） | web 端聆聽／建議答案／朗讀流程已移除；`/api/analyze` 介面入口停用、只回固定結構提示；Chrome 擴充功能已移出 `public/`，原始檔保留待 Sean 決定（§13） |
+| FR-007 | 匿名使用與一鍵刪除：無需註冊即可練習；設定頁一鍵刪除本產品在瀏覽器中的全部資料（含 API key、報告、session、歷史） | P0 | 已實作（M1） | 主要頁面不需登入；資料 key 統一為 `aiia.*`；一鍵刪除清除本站 localStorage 全部 key（含舊版未加前綴的 key），只保留語系偏好 |
+| FR-008 | 資料使用告知：首次使用顯示同意說明，文案需與實際資料流一致 | P0 | 已實作（M1） | 同意 modal 與 README 說明：Mock 資料只存本機、作答送本站伺服器評分；自備 key 時題目／回答／key 經本站伺服器轉送 AI 供應商；伺服器不保存回答 |
+| FR-009 | 自動化測試：單元測試、API 契約測試、E2E 流程測試，可在 CI 重跑 | P0 | 已實作（M1） | Vitest（`tests/unit/`）、Playwright（`e2e/`）、CI `.github/workflows/ci.yml`；測試全程零真實外部網路請求 |
 | FR-010 | 雙語介面（繁中／英文） | P1 | 已實作 | `app/i18n/*`、`language-switcher.tsx` |
 | FR-011 | BYOK：使用者自備 AI key、可驗證 key 有效性 | P1 | 已實作 | `settings` + `/api/test-key`；key 以明文存 localStorage |
 | FR-012 | 免費額度與付費牆：免費次數用完顯示升級／匯出選項，不刪除既有資料 | P1 | 部分 | 計數與 modal 已實作；未實際限制使用 |
@@ -238,6 +239,8 @@ AI 成本是 Notion 列出的主要風險之一：訂閱價格必須在 M2 以�
 
 ## 12. 文件與程式不一致處（以程式為準）
 
+> **M1 更新**：下表為 M1 開工前（`53a79b2`）的盤點。M1 已處理第 1、2、3、4、5、8、11、12 項（對應 GOAL AC-002、AC-003、AC-006～AC-009）；第 9、10 項（正式網址、GitHub Pages）不在 M1 範圍，仍待確認。
+
 | # | 文件說法 | 實際程式 |
 |---|---|---|
 | 1 | README：所有頁面不需登入 | `/interview`、`/interview/[sessionId]`、`/settings`、`/report/[id]`、`/dashboard` 未登入時顯示登入提示（登入為 localStorage 假帳號） |
@@ -258,8 +261,8 @@ AI 成本是 Notion 列出的主要風險之一：訂閱價格必須在 M2 以�
 
 ## 13. 待確認事項
 
-1. Chrome 擴充功能：刪除、封存到獨立 repo，或改造成「僅練習模式」？（M1 至少要讓它不隨 web 發佈）
-2. `/api/analyze`（單題建議答案）是否整個移除，或改為「只給答題結構提示、不給內容」？
+1. Chrome 擴充功能：刪除、封存到獨立 repo，或改造成「僅練習模式」？（M1 已讓它不隨 web 發佈：`public/` 內的複本已移除，repo 根目錄的原始檔與 zip 原封不動保留，待決定）
+2. `/api/analyze`（單題建議答案）是否整個移除，或改為「只給答題結構提示、不給內容」？（M1 暫行處置：介面入口全部停用；route 保留但只經 `LlmProvider` 回傳固定的結構提示，每則含「請用自己的話」，不呼叫外部 AI。最終去留待決定）
 3. 正式網址以哪一個 Vercel domain 為準；GitHub Pages 是否保留（目前持續失敗）。
 4. Lockfile 政策：保留 npm 或 pnpm 其一。
 5. 定價、成功指標目標值、企業招募方案內容。

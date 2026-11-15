@@ -1,97 +1,94 @@
-# AI Interview Assistant
+# AI 面試演練與複盤（AI Interview Assistant）
 
-> 繁中、面試前演練 + 面試後證據化複盤。即時提示只保留為 opt-in 的低風險教練,**不做隱藏式代答**。
-> v3.0 — sweet=5, investigate。SPEC: [`PRD/SPEC.md`](PRD/SPEC.md) · CHANGELOG: [`PRD/CHANGELOG.md`](PRD/CHANGELOG.md)
+> 繁中、面試前演練 + 面試後證據化複盤。**不做面試進行中的即時代答**。
+> 規格：[`PRD/SPEC.md`](PRD/SPEC.md)｜目前里程碑：[`GOAL.md`](GOAL.md)（M1）｜驗證流程：[`SOP.md`](SOP.md)｜現況與證據：[`STATUS.md`](STATUS.md)
 
-## 🚀 Live Demo
+## 這個產品做什麼
 
-**Production**: <https://ai-interview-assistant-eosin.vercel.app>
+- **模擬面試**：選擇職務與職級 → 5 題文字作答 → 每題顯示分數、可觀察證據與建議 → 結束後產生複盤報告（總分、5 維雷達圖、逐題回饋，可匯出 Markdown）。
+- **題庫**：單一題庫（通用題 + 職務 × 職級題），可依題型、語言、職務、職級篩選；只提供題目與答題提示，不產生示範答案。
+- **預設 Mock 模式**：不需要 API key、不需要註冊或登入即可完成一次完整練習。評分依明文 rubric（[`PRD/RUBRIC.md`](PRD/RUBRIC.md)），同樣的回答必得同樣的分數。
+- **自備 API key（選填）**：在設定頁貼上自己的 OpenAI key 後，出題與評分改由 AI 供應商處理；失敗時自動降級回 Mock 並標示。
 
-> ⚠️ Demo Mode (Mock) 預設啟用 — **無需 API Key、無需註冊** 即可體驗完整 3 次免費面試演練。
-> 在 Settings 貼上自己的 OpenAI key 即可切換到 BYOK 模式用真實 LLM。
+### 不做的事
 
-## v3.0 三大差異（SPEC §16 / §17 / §18）
+- 不聆聽真實面試、不在面試中產生或朗讀答案、不提供「下一句可以怎麼接」。
+- 不做錄取預測或人格評斷，不宣稱提升錄取率。
+- M1 不接正式付費 AI API、不做真實帳號與金流。
 
-- 🎭 **Mock 模式預設** — 不打 OpenAI,離線可跑 3 次完整面試。SPEC §16。
-- 🪪 **anonymous-first** — 進站即可使用,localStorage cuid + 一鍵刪除。**不要求註冊**。SPEC §17。
-- 🛟 **降級不丟資料** — BYOK 模式 timeout/5xx 自動降級 Mock,草稿保留。SPEC §5.3 + §16.5。
+## 資料流與隱私
+
+| 模式 | 資料存在哪裡 | 會送到哪裡 |
+|---|---|---|
+| Mock 模式（預設） | 練習資料只存在本機瀏覽器（localStorage 的 `aiia.*` key） | 作答內容會送到本站伺服器即時評分，不會轉送給任何 AI 供應商 |
+| 自備 API key | 同上；key 也存在本機瀏覽器（`aiia.byok.apiKey`） | 題目、回答與 key 會經本站伺服器轉送給 AI 供應商（OpenAI） |
+
+- 本站不會在伺服器保存回答、報告或 API key。
+- 設定頁的「刪除資料」會清除本產品在這個瀏覽器的全部資料（API key、練習 session、報告、使用統計與歷史），只保留介面語系偏好。
+- 首次進入時的同意說明與上表一致；修改資料流時必須同步修改同意文案（`app/components/session-init.tsx`）與本段。
 
 ## Quick Start
 
 ```bash
-npm install --legacy-peer-deps
-npm run dev        # 本機 dev server,http://localhost:3000
-npm run build      # production build
-npm run lint       # ESLint
+npm ci
+npm run dev        # http://localhost:3000
 ```
 
-**v3.0 不需要任何環境變數** — Mock mode 完全離線運作。BYOK mode 由使用者在 Settings 貼 API key(僅存 localStorage,**不上 server**)。
+不需要任何環境變數。完整驗證指令見 [`SOP.md`](SOP.md)：
 
-## Chrome Extension
-
-`manifest.json` + `background.js` + `sidePanel.js` 在 repo root,適合在 `chrome://extensions/` 載入未封裝項目使用。
-
-ZIP 打包版: [`ai-interview-assistant-chrome-extension.zip`](ai-interview-assistant-chrome-extension.zip)
+```bash
+npm run lint
+npm run typecheck
+npm test           # Vitest：單元與契約測試（零真實網路請求）
+npm run build
+npm run e2e        # Playwright：無 key、無登入的練習閉環
+```
 
 ## Pages
 
-| Route | Description | Auth Required |
-|-------|-------------|---------------|
-| `/` | Landing (v3.0 banner + Demo Mode badge) | No |
-| `/interview` | Core interview practice (5 STAR questions) | No |
-| `/interview/[sessionId]` | Run session, submit answers, view report | No |
-| `/settings` | API key (BYOK) + 一鍵刪除 session | No |
-| `/report/[id]` | View past report | No |
-| `/pricing` | Pricing plans (Pro / Campus / Consultant) | No |
-| `/dashboard` | Usage history (Chrome extension users) | Optional |
-| `/sign-in` `/sign-up` `/login` `/register` | Mock auth (P2 升級路徑) | No |
-
-> **為什麼所有頁面都不要求登入?** v3.0 SPEC §17.1:「先讓使用者完成一個真實 job,再要求註冊」。3 次免費額度用完才顯示 paywall。
+| Route | 說明 | 需要登入 |
+|---|---|---|
+| `/` | Landing | 否 |
+| `/interview` | 開始模擬面試、瀏覽題庫、練習工具（計時器、鏡頭預覽、自評） | 否 |
+| `/interview/[sessionId]` | 逐題作答與即時評分 | 否 |
+| `/report/[id]` | 複盤報告、匯出 Markdown | 否 |
+| `/settings` | 選填 API key、額度、練習紀錄、一鍵刪除 | 否 |
+| `/dashboard` | 練習紀錄與統計 | 否 |
+| `/pricing` | 靜態方案說明（尚無金流） | 否 |
+| `/sign-in` `/sign-up` `/login` `/register` | localStorage 假登入（示意用，主要流程不需要） | — |
 
 ## Architecture
 
 ```
-Next.js 14 (App Router)
-├── app/lib/llm/        # v3.0 router + Mock/BYOK providers + auto-degrade
-├── app/lib/session/    # anonymous cuid + quota + deleteSession
-├── Tailwind CSS
-├── OpenAI GPT-4o (BYOK, server-side proxy via x-api-key)
-├── localStorage (session + quota + events)
-└── Vercel (production) + GitHub Pages (static mirror)
+Next.js 14 (App Router) + React 18 + TypeScript + Tailwind CSS
+app/lib/llm/         LlmProvider 介面、router（單一工廠、重試、降級、冷卻）、Mock／BYOK provider
+app/lib/questions/   單一題庫與 schema 驗證
+app/lib/scoring/     rubric 評分（純函式）
+app/lib/practice/    模擬面試的瀏覽器端資料模型
+app/lib/storage/     localStorage key 規則與一鍵刪除
+app/lib/session/     匿名 session、同意、免費額度計數
+tests/               Vitest 單元／契約測試（測試名稱標 AC 編號）
+e2e/                 Playwright E2E
 ```
 
-API routes:
-- `POST /api/interview/start` — start 5-question session (Mock or BYOK)
-- `POST /api/interview/answer` — evaluate answer (auto-degrade on LLM failure)
-- `POST /api/interview/end` — final report with 5-dimension radar
-- `POST /api/analyze` — single-question instant analysis (Mock or BYOK)
-- `POST /api/test-key` — validate user's OpenAI key (BYOK setup)
+API routes（全部只透過 `LlmProvider` 取得結果，route 內不直接呼叫外部 AI 端點）：
 
-## Acceptance Criteria (20 條)
+- `POST /api/interview/start` — 開始 5 題模擬面試
+- `POST /api/interview/answer` — 評分一題並回傳下一題；回饋分為 `evidence` 與 `suggestions`
+- `POST /api/interview/end` — 產生複盤報告
+- `POST /api/test-key` — 驗證使用者自備的 key
+- `POST /api/analyze` — 介面入口已停用；只回傳固定的答題結構提示（每則含「請用自己的話」），去留待決定（見 `STATUS.md`）
 
-詳見 [SPEC §18](PRD/SPEC.md#18-可量測的-mvp-完成度契約-v30-新增) 與 `scripts/verify-mvp.sh`。
+## Chrome 擴充功能
 
-| AC | 內容 | 驗證 |
-|---|---|---|
-| AC-011 | `/api/interview/start` 不傳 apiKey 回 mock 5 題 | `curl -X POST /api/interview/start -d '{}'` |
-| AC-013 | Mock mode footer 顯示 Demo Mode 字串 | `curl / \| grep "Demo Mode (Mock)"` |
-| AC-014 | Settings 可切換 Mock ↔ BYOK | 瀏覽器手動測試 |
-| AC-015 | 首次進站不跳登入牆 | `curl / \| grep -v "sign-in"` |
-| AC-016 | localStorage 出現 `aiia.session.uid` | DevTools → Application → Local Storage |
-| AC-017 | 完成 3 次後出現 paywall modal | DevTools 手動跑 3 次 end |
-| AC-018 | Settings 刪除 session 按鈕清空 localStorage | `delete-session-btn` click → 檢查 |
+repo 根目錄的 `manifest.json`、`sidePanel.*`、`content.js`、`background.js`、`popup.*` 與 zip 是舊版 Chrome 擴充功能的原始檔。它屬於「面試中即時代答」型態，與本產品定位衝突：
+
+- 已自 `public/` 移除，**不隨網站部署**。
+- 原始檔暫時保留、未做任何修改；最終刪除或封存待決定（見 `STATUS.md`）。請勿安裝使用或對外散布。
 
 ## Deployment
 
-- **Vercel**: push to `master` (此 repo **未綁 GitHub webhook**,需手動 `npx vercel deploy --prod`)
-- **GitHub Pages**: `.github/workflows/deploy.yml` 跑 `GITHUB_PAGES=1 npm run build` 推到 `gh-pages` branch
-- **環境變數**: v3.0 MVP 不需要任何 env var
-
-## SPEC 版本歷程
-
-- **v3.0** (2026-08-08) — 補 §16/§17/§18/§19 實作契約,新增 Mock+BYOK 雙模式、anonymous-first session、可量測驗證。sweet=5 不變。
-- v2.2.1 (2026-07-19) — Sweet-spot rewrite
-- v1.0 (2026-04-03) — 初版
+M1 不包含 production 部署與部署設定變更。Vercel 正式網址與 GitHub Pages workflow 的狀態見 `STATUS.md` 與 `PRD/SPEC.md` §13。
 
 ## License
 

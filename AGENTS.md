@@ -13,24 +13,30 @@
 ```
 app/
   page.tsx                    Landing
-  interview/page.tsx          練習頁（題庫、工具側欄；含待移除的代答型流程，見 SPEC §9）
-  interview/[sessionId]/      模擬面試逐題作答
-  interview/components/       questionBank.ts（題庫）、Timer、VideoSimulation（鏡頭預覽）、RatingForm（自評）
-  report/[id]/                複盤報告（雷達圖、Markdown 匯出）
-  settings/                   BYOK key、語音設定、一鍵刪除
-  dashboard/  pricing/        個人統計、靜態定價頁
-  sign-in/ sign-up/ login/ register/   localStorage 假登入
-  api/interview/{start,answer,end}/    模擬面試 API（經 LlmProvider）
-  api/analyze/                單題建議答案（繞過 LlmProvider，M1 需處理）
-  api/test-key/               BYOK key 驗證
-  lib/llm/                    LlmProvider 介面、router、mock-provider、byok-provider
+  interview/page.tsx          練習頁：開始模擬面試（職務／職級）、題庫瀏覽、練習工具
+  interview/[sessionId]/      模擬面試逐題作答（分數、可觀察證據、建議）
+  interview/components/       Timer、VideoSimulation（鏡頭預覽）、RatingForm（自評）
+  report/[id]/                複盤報告（雷達圖、證據／建議、Markdown 匯出）
+  settings/                   選填 API key、額度、練習紀錄、一鍵刪除
+  dashboard/  pricing/        練習紀錄統計、靜態定價頁
+  sign-in/ sign-up/ login/ register/   localStorage 假登入（主要流程不需要）
+  api/interview/{start,answer,end}/    模擬面試 API（只經 LlmProvider）
+  api/analyze/                只回傳答題結構提示；介面入口已停用，去留待 Sean 決定
+  api/test-key/               自備 key 驗證（經 LlmProvider.validateKey）
+  lib/llm/                    LlmProvider 介面、router（工廠／重試／降級／冷卻）、mock-provider、byok-provider
+  lib/questions/              單一題庫（bank.ts）與 schema 驗證
+  lib/scoring/                rubric 評分（規則文件：PRD/RUBRIC.md）
+  lib/practice/               模擬面試的瀏覽器端資料模型、報告 Markdown
+  lib/storage/                localStorage key 規則（aiia.*）與一鍵刪除
   lib/session/                匿名 session、consent、免費額度
-  components/  i18n/          UI primitives、session-init、語系
+  components/  i18n/          UI primitives、session-init（同意 modal）、語系
 components/                   auth-provider（假登入）、clerk-provider（未使用）
+tests/                        Vitest：unit/（測試名稱標 AC 編號）、setup/（網路守門、假 fetch）、fixtures/、helpers/
+e2e/                          Playwright E2E
 middleware.ts                 安全 headers
-scripts/verify-mvp.sh         curl smoke test
-PRD/SPEC.md  PRD/CHANGELOG.md
-manifest.json sidePanel.* content.js background.js popup.* public/（同名複本）  Chrome 擴充功能（處置待 Sean 決定）
+scripts/                      verify-mvp.sh（curl smoke）、check-credentials.sh（憑證掃描）
+PRD/SPEC.md  PRD/RUBRIC.md  PRD/CHANGELOG.md
+manifest.json sidePanel.* content.js background.js popup.* *.zip   舊版 Chrome 擴充功能原始檔（不在 public/、不隨 web 部署；處置待 Sean 決定，勿修改）
 ```
 
 ## 3. 技術棧
@@ -38,6 +44,7 @@ manifest.json sidePanel.* content.js background.js popup.* public/（同名複�
 - Next.js 14.2.5（App Router）、React 18、TypeScript 5（`tsconfig.json` 目前 `strict: false`）、Tailwind CSS 3、ESLint 8（`next/core-web-vitals`）。
 - 資料：瀏覽器 localStorage；無資料庫。
 - AI：`app/lib/llm/` 自訂 `LlmProvider`；Mock 為預設，BYOK 以 `fetch` 呼叫 OpenAI Chat Completions。`openai`、`@clerk/nextjs` 套件已安裝但主要流程未使用。
+- 測試：Vitest 2（單元／契約）、Playwright（E2E，Chromium）。CI：`.github/workflows/ci.yml`。
 - 部署：Vercel（`vercel.json`）、GitHub Pages workflow（`.github/workflows/deploy.yml`，目前持續失敗）。
 - 套件管理：`package-lock.json` 與 `pnpm-lock.yaml` 並存，以 npm 為準（`vercel.json`、CI 皆用 npm），政策待確認。
 
@@ -55,7 +62,7 @@ manifest.json sidePanel.* content.js background.js popup.* public/（同名複�
 
 ## 5. 驗證命令
 
-見 [`SOP.md`](./SOP.md)。目前可用：`npm run lint`、`npx tsc --noEmit`、`npm run build`、`bash scripts/verify-mvp.sh <host>`；`test`、`typecheck`、`e2e` scripts 尚未配置（M1 AC-001）。
+見 [`SOP.md`](./SOP.md)：`npm run lint`、`npm run typecheck`、`npm test`、`npm run build`、`npm run e2e`、`git diff --check`、`bash scripts/check-credentials.sh`。每條 AC 至少對應一個測試，測試名稱以 `AC-xxx:` 開頭。
 
 ## 6. Commit 規則
 

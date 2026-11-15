@@ -4,6 +4,33 @@
 
 ---
 
+## [M1] — 2026-11-16 — 可測試、無代答風險的 Mock 練習閉環（GOAL.md AC-001～AC-010）
+
+### Added
+- 測試基礎建設：`typecheck`／`test`／`e2e` scripts、Vitest 單元與契約測試（`tests/`）、Playwright E2E（`e2e/`）、CI（`.github/workflows/ci.yml`）。測試 setup 讓任何真實 `fetch` 直接拋錯。（AC-001、AC-003）
+- 單一題庫 `app/lib/questions/bank.ts` 與 schema 驗證；題庫可依職務、職級篩選。（AC-004）
+- 明文 rubric 評分 `app/lib/scoring/rubric.ts` 與說明文件 `PRD/RUBRIC.md`；回饋分為 `evidence`（可觀察的證據）與 `suggestions`（建議）。（AC-005）
+- `/interview` 可直接開始 5 題模擬面試（選職務與職級），不需 API key、不需登入；`/api/interview/answer` 回傳下一題與 `isComplete`。（AC-006）
+- `scripts/check-credentials.sh` 憑證掃描。（AC-010）
+
+### Changed
+- 所有 AI 相關 route（含 `/api/analyze`、`/api/test-key`）只經 `LlmProvider`；router 成為單一工廠，重試統一為至多 1 次，降級回應欄位為 `degraded`／`degradedReason`；連續失敗冷卻改為伺服器端記憶體。（AC-002、AC-003）
+- localStorage key 統一為 `aiia.*`；設定頁「刪除資料」清除本站全部資料（含 API key、報告、session、統計、歷史），只保留語系偏好。（AC-008）
+- 同意 modal、README、設定頁與 Landing 的資料流說明改為與實際一致。（AC-009）
+- `/interview`、`/interview/[sessionId]`、`/report/[id]`、`/settings`、`/dashboard` 不再要求（假）登入。
+- 版面不再載入 Google Fonts，改用系統字型堆疊，頁面本身零外部請求。
+
+### Removed
+- web 端「輸入或語音聆聽題目 → 建議答案 → 朗讀 → 下一句提示」流程與其介面文案。（AC-007）
+- `public/` 內的 Chrome 擴充功能複本（`manifest.json`、`sidePanel.*`、`content.js`、`background.js`、`popup.*`）；repo 根目錄的原始檔與 zip 保留，處置待決定。（AC-007）
+- 設定頁的語音辨識語言／TTS 速度／麥克風選項，以及只在擴充功能環境有效的 `chrome.storage` 分支（對應的代答流程已移除）。
+- API route 中在伺服器端無作用的 `logEvent`／`getOrCreateSession` 呼叫。
+
+### 待決定（未在 M1 處理）
+- Chrome 擴充功能原始檔的最終處置；`/api/analyze` 的去留（目前只回固定結構提示、介面入口停用）。
+
+---
+
 ## [3.0.0] — 2026-08-08 — 實作契約補完，不改 sweet=5
 
 ### Changed
