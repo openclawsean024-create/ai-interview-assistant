@@ -1,9 +1,16 @@
 // app/api/interview/answer/route.ts
-// v3.0 SPEC §16 + §17 Mock + BYOK 雙模式
+// 評分一題回答，並回傳下一題（或 isComplete）。評分與出題都只經由 LlmProvider。
+// 回饋分成 evidence（可觀察的證據）與 suggestions（建議）。伺服器不保存回答。
 
 import { NextRequest, NextResponse } from 'next/server';
 import { buildCtx, safeCall } from '@/app/lib/llm/router';
-import { logEvent, getOrCreateSession } from '@/app/lib/session/session';
+import { errorResponse } from '@/app/lib/llm/http-errors';
+import {
+  DEFAULT_JOB_LEVEL,
+  DEFAULT_JOB_TYPE,
+  MAX_ANSWER_CHARS,
+  TOTAL_QUESTIONS,
+} from '@/app/lib/practice/constants';
 
 export const runtime = 'nodejs';
 
@@ -11,65 +18,51 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => ({}));
     const sessionId = body?.sessionId;
-    const questionId = body?.questionId ?? 'q?';
-    const questionText = body?.questionText ?? '';
-    const answerText = body?.answerText ?? '';
-    const jobType = body?.jobType ?? 'software-engineer';
-    const jobLevel = body?.jobLevel ?? 'mid';
-    const askedQuestions: string[] = body?.askedQuestions ?? [];
+    const questionText = typeof body?.questionText === 'string' ? body.questionText : '';
+    const answerText = typeof body?.answerText === 'string' ? body.answerText : '';
+    const jobType = typeof body?.jobType === 'string' ? body.jobType : DEFAULT_JOB_TYPE;
+    const jobLevel = typeof body?.jobLevel === 'string' ? body.jobLevel : DEFAULT_JOB_LEVEL;
+    const askedFromBody: string[] = Array.isArray(body?.askedQuestions)
+      ? body.askedQuestions.filter((q: unknown): q is string => typeof q === 'string')
+      : [];
+    const askedQuestions = askedFromBody.length > 0 ? askedFromBody : questionText ? [questionText] : [];
 
-    if (!sessionId) {
+    if (!sessionId || typeof sessionId !== 'string') {
       return NextResponse.json({ error: 'Missing sessionId' }, { status: 400 });
     }
-    if (!answerText || answerText.trim().length === 0) {
-      // §3.1 AC-003 不可捏造事實 → 空字串給低分與明確回饋
-      return NextResponse.json({
-        success: true,
-        data: {
-          mode: 'mock',
-          score: 0,
-          dimensions: { structure: 0, depth: 0, relevance: 0, clarity: 0, confidence: 0 },
-          feedback: '未填寫回答。請用自己的話描述一個真實經驗。',
-          nextQuestion: null,
-          isComplete: false,
-        },
-      });
+    if (answerText.length > MAX_ANSWER_CHARS) {
+      return NextResponse.json({ error: 'ANSWER_TOO_LONG', maxChars: MAX_ANSWER_CHARS }, { status: 400 });
     }
 
-    const apiKey = req.headers.get('x-api-key') ?? undefined;
-    const userId = getOrCreateSession().uid;
-    const ctx = buildCtx({ mode: apiKey ? 'byok' : 'mock', apiKey, userId });
+    const ctx = buildCtx({ apiKey: req.headers.get('x-api-key') });
+    const isBlank = answerText.trim().length === 0;
+    // 空白回答一律由 Mock rubric 給 0 分：不把空白送給外部 AI，也不產生任何捏造的回饋。
+    const evalCtx = isBlank ? buildCtx({}) : ctx;
+    const evalResult = await safeCall(evalCtx, (p) => p.evaluate(evalCtx, { answer: answerText, questionText }));
 
-    const evalResult = await safeCall(ctx, (p) =>
-      p.evaluate(ctx, { answer: answerText, questionText }),
-    );
-
-    logEvent('interview_answer', {
-      sessionId,
-      questionId,
-      mode: evalResult.mode,
-      score: evalResult.score,
-      degraded: evalResult.degraded ?? false,
-    });
+    const isComplete = askedQuestions.length >= TOTAL_QUESTIONS;
+    const nextQ = isComplete
+      ? null
+      : await safeCall(ctx, (p) => p.generateQuestion(ctx, { jobType, jobLevel, askedQuestions }));
 
     return NextResponse.json({
       success: true,
       data: {
         mode: evalResult.mode,
-        degraded: evalResult.degraded ?? false,
-        degradedReason: evalResult.reason ?? null,
+        degraded: Boolean(evalResult.degraded || nextQ?.degraded),
+        degradedReason: evalResult.degradedReason ?? nextQ?.degradedReason ?? null,
         score: evalResult.score,
         dimensions: evalResult.dimensions,
         feedback: evalResult.feedback,
+        evidence: evalResult.evidence,
+        suggestions: evalResult.suggestions,
+        nextQuestion: nextQ
+          ? { id: `q${askedQuestions.length + 1}`, text: nextQ.question, hint: nextQ.hint }
+          : null,
+        isComplete,
       },
     });
-  } catch (error: any) {
-    if (error?.message === 'OPENAI_AUTH_FAILED') {
-      return NextResponse.json(
-        { error: 'OPENAI_AUTH_FAILED', message: 'OpenAI API key 失效或無效' },
-        { status: 400 },
-      );
-    }
-    return NextResponse.json({ error: error?.message ?? 'Internal server error' }, { status: 500 });
+  } catch (error) {
+    return errorResponse(error);
   }
 }

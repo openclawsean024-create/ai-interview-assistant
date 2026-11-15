@@ -1,9 +1,11 @@
 'use client';
 
+// app/report/[id]/page.tsx
+// 複盤報告（AC-005、AC-006）：不需登入。資料只從瀏覽器 localStorage（aiia.report.<id>）讀取。
+// 逐題回饋分開顯示「可觀察證據」與「建議」；可匯出 Markdown。
+
 export const dynamic = 'force-dynamic';
 
-import { useAuth } from '@/components/auth-provider';
-import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import {
   Container,
@@ -19,46 +21,25 @@ import {
   IconSparkle,
   IconFileText,
   IconDownload,
-  IconKey,
 } from '@/app/components/ui-primitives';
+import { loadReport, type PracticeReport } from '@/app/lib/practice/store';
+import { buildReportMarkdown, formatReportDate as formatDate } from '@/app/lib/practice/report-markdown';
+import { DIMENSION_LABELS, type DimensionKey } from '@/app/lib/scoring/rubric';
 
-interface Answer {
-  questionId: string;
-  questionText: string;
-  answerText: string;
-  score: number;
-  feedback: string;
-  dimensions: { structure: number; depth: number; relevance: number; clarity: number };
-}
-
-interface ReportData {
-  reportId: string;
-  overallScore: number;
-  summary: string;
-  strengths: string[];
-  improvements: string[];
-  radarData: { structure: number; depth: number; relevance: number; clarity: number; confidence: number };
-  answers: Answer[];
-}
+const DIMENSION_ORDER: DimensionKey[] = ['structure', 'depth', 'relevance', 'clarity', 'confidence'];
 
 export default function ReportPage({ params }: { params: { id: string } }) {
   const { id } = params;
-  const { user, isSignedIn, isLoaded } = useAuth();
 
-  const [report, setReport] = useState<ReportData | null>(null);
-  const [notFound, setNotFound] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const [report, setReport] = useState<PracticeReport | null>(null);
 
   useEffect(() => {
-    if (!isSignedIn || !user?.id) return;
-    const stored = localStorage.getItem(`report_${id}`);
-    if (stored) {
-      setReport(JSON.parse(stored));
-    } else {
-      setNotFound(true);
-    }
-  }, [isSignedIn, user?.id, id]);
+    setReport(loadReport(id));
+    setLoaded(true);
+  }, [id]);
 
-  if (!isLoaded) {
+  if (!loaded) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-bg">
         <div className="flex items-center gap-3 text-primary">
@@ -69,27 +50,7 @@ export default function ReportPage({ params }: { params: { id: string } }) {
     );
   }
 
-  if (!isSignedIn) {
-    return (
-      <div className="min-h-screen flex flex-col bg-bg">
-        <SkipLink />
-        <Navbar active="/report" locale="zh" />
-        <Container className="py-16 text-center">
-          <div className="w-14 h-14 rounded-full bg-warning/15 text-warning flex items-center justify-center mx-auto mb-3">
-            <IconKey size={26} />
-          </div>
-          <h1 className="text-h2 text-ink mb-2">請先登入</h1>
-          <p className="text-ink-secondary mb-6">報告資料儲存在你的帳戶中。</p>
-          <LinkButton href="/sign-in" variant="primary">
-            前往登入 <IconArrowRight size={16} />
-          </LinkButton>
-        </Container>
-        <Footer locale="zh" />
-      </div>
-    );
-  }
-
-  if (notFound || !report) {
+  if (!report) {
     return (
       <div className="min-h-screen flex flex-col bg-bg">
         <SkipLink />
@@ -98,24 +59,16 @@ export default function ReportPage({ params }: { params: { id: string } }) {
           <div className="w-14 h-14 rounded-full bg-surface-elevated text-ink-muted flex items-center justify-center mx-auto mb-3">
             <IconFileText size={26} />
           </div>
-          <h1 className="text-h2 text-ink mb-2">找不到這份報告</h1>
-          <p className="text-ink-secondary mb-6">可能連結已過期或報告已被刪除。</p>
-          <LinkButton href="/dashboard" variant="primary">
-            返回儀表板 <IconArrowRight size={16} />
+          <h1 className="text-h2 text-ink mb-2" data-testid="report-not-found">找不到這份報告</h1>
+          <p className="text-ink-secondary mb-6">報告只儲存在產生它的瀏覽器；可能已被刪除，或是在另一個瀏覽器產生的。</p>
+          <LinkButton href="/interview" variant="primary">
+            開始練習 <IconArrowRight size={16} />
           </LinkButton>
         </Container>
         <Footer locale="zh" />
       </div>
     );
   }
-
-  const radarLabels: Record<string, string> = {
-    structure: 'STAR 結構',
-    depth: '深度與量化',
-    relevance: '相關性',
-    clarity: '表達清晰度',
-    confidence: '信心程度',
-  };
 
   const tier =
     report.overallScore >= 85 ? { label: '非常優秀', tone: 'excellent' as const } :
@@ -130,39 +83,14 @@ export default function ReportPage({ params }: { params: { id: string } }) {
                                 'bg-danger/15 text-danger border-danger/30';
 
   const handleExport = () => {
-    const md = `# 面試報告 — ${new Date(report!.reportId).toLocaleString('zh-TW')}
-
-整體分數: **${report!.overallScore} / 100**
-
-## AI 總結
-${report!.summary}
-
-## 強項
-${report!.strengths.map((s) => `- ${s}`).join('\n')}
-
-## 待改進
-${report!.improvements.map((s) => `- ${s}`).join('\n')}
-
-## 各題評分
-${report!.answers.map((a, i) => `### Q${i + 1} (${a.score}/100)
-${a.questionText}
-
-> ${a.answerText}
-
-${a.feedback}
-
-- 結構: ${a.dimensions.structure}
-- 深度: ${a.dimensions.depth}
-- 相關性: ${a.dimensions.relevance}
-- 清晰: ${a.dimensions.clarity}
-`).join('\n')}
-`;
-    const blob = new Blob([md], { type: 'text/markdown' });
+    const blob = new Blob([buildReportMarkdown(report)], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `interview-report-${report!.reportId.slice(0, 8)}.md`;
+    a.download = `interview-report-${report.reportId.slice(0, 8)}.md`;
+    document.body.appendChild(a);
     a.click();
+    a.remove();
     URL.revokeObjectURL(url);
   };
 
@@ -174,11 +102,11 @@ ${a.feedback}
       <main id="main-content">
         <Container className="py-8 lg:py-10 max-w-3xl">
           <PageHeader
-            eyebrow="面試報告"
+            eyebrow="面試複盤報告"
             title={`整體表現 ${tier.label}`}
-            description={`報告 ID: ${report.reportId.slice(0, 8)} · ${new Date(report.reportId).toLocaleString('zh-TW')}`}
+            description={`報告 ID: ${report.reportId.slice(0, 8)} · ${formatDate(report.createdAt)} · ${report.mode === 'byok' ? '自備 API Key 模式' : 'Demo 模式（Mock rubric）'}`}
             actions={
-              <button onClick={handleExport} className="btn-ghost">
+              <button onClick={handleExport} className="btn-ghost" data-testid="export-markdown">
                 <IconDownload size={16} />
                 匯出 Markdown
               </button>
@@ -205,16 +133,16 @@ ${a.feedback}
             </div>
           </section>
 
-          {/* ===== AI Summary ===== */}
+          {/* ===== Summary ===== */}
           <section aria-labelledby="summary-heading" className="mb-10">
-            <SectionHeading eyebrow="AI 總結" title="教練點評" />
-            <h2 id="summary-heading" className="sr-only">AI 總結</h2>
+            <SectionHeading eyebrow="總結" title="整場練習摘要" />
+            <h2 id="summary-heading" className="sr-only">總結</h2>
             <div className="card">
               <div className="flex items-start gap-3">
                 <div className="w-10 h-10 rounded-lg bg-primary/15 text-primary flex items-center justify-center flex-shrink-0">
                   <IconSparkle size={20} />
                 </div>
-                <p className="text-ink leading-relaxed flex-1">{report.summary}</p>
+                <p className="text-ink leading-relaxed flex-1" data-testid="report-summary">{report.summary}</p>
               </div>
             </div>
           </section>
@@ -225,7 +153,7 @@ ${a.feedback}
               <SectionHeading eyebrow="能力圖譜" title="5 維度評分" />
               <h2 id="radar-heading" className="sr-only">能力雷達圖</h2>
               <div className="card flex justify-center">
-                <RadarChart data={report.radarData} labels={radarLabels} />
+                <RadarChart data={report.radarData as unknown as Record<string, number>} labels={DIMENSION_LABELS} />
               </div>
             </section>
           )}
@@ -235,23 +163,27 @@ ${a.feedback}
             <SectionHeading eyebrow="回饋" title="強項 vs 待改進" />
             <h2 id="strengths-heading" className="sr-only">強項與改進</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <article className="card">
+              <article className="card" data-testid="report-strengths">
                 <header className="flex items-center gap-2 mb-4">
                   <div className="w-8 h-8 rounded-full bg-success/15 text-success flex items-center justify-center">
                     <IconCheck size={16} />
                   </div>
                   <h3 className="text-h4 text-success">強項</h3>
                 </header>
-                <ul className="space-y-3">
-                  {report.strengths.map((s, i) => (
-                    <li key={i} className="flex items-start gap-2.5 text-sm text-ink-secondary leading-relaxed">
-                      <span className="flex-shrink-0 mt-1 w-1.5 h-1.5 rounded-full bg-success" />
-                      {s}
-                    </li>
-                  ))}
-                </ul>
+                {report.strengths.length === 0 ? (
+                  <p className="text-sm text-ink-muted">這次的回答中尚未偵測到符合 rubric 的強項。</p>
+                ) : (
+                  <ul className="space-y-3">
+                    {report.strengths.map((s, i) => (
+                      <li key={i} className="flex items-start gap-2.5 text-sm text-ink-secondary leading-relaxed">
+                        <span className="flex-shrink-0 mt-1 w-1.5 h-1.5 rounded-full bg-success" />
+                        {s}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </article>
-              <article className="card">
+              <article className="card" data-testid="report-improvements">
                 <header className="flex items-center gap-2 mb-4">
                   <div className="w-8 h-8 rounded-full bg-warning/15 text-warning flex items-center justify-center">
                     <IconTarget size={16} />
@@ -279,7 +211,7 @@ ${a.feedback}
                 const scoreTone =
                   a.score >= 85 ? 'text-success' : a.score >= 70 ? 'text-warning' : 'text-danger';
                 return (
-                  <li key={i} className="card">
+                  <li key={i} className="card" data-testid={`report-answer-${i}`}>
                     <header className="flex items-baseline justify-between mb-3 gap-3">
                       <span className="tag">
                         Q{i + 1}
@@ -297,31 +229,43 @@ ${a.feedback}
                       <summary className="cursor-pointer text-xs uppercase tracking-wider text-ink-muted font-semibold list-none [&::-webkit-details-marker]:hidden hover:text-ink transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded px-1">
                         你的回答
                       </summary>
-                      <p className="mt-2 text-sm text-ink-secondary leading-relaxed pl-1 answer-prose">
+                      <p className="mt-2 text-sm text-ink-secondary leading-relaxed pl-1 answer-prose whitespace-pre-wrap">
                         {a.answerText}
                       </p>
                     </details>
-                    <div className="bg-surface-elevated rounded-lg p-3 mb-3">
-                      <p className="text-xs uppercase tracking-wider text-ink-muted font-semibold mb-1">教練回饋</p>
-                      <p className="text-sm text-ink leading-relaxed">{a.feedback}</p>
+                    <p className="text-sm text-ink leading-relaxed mb-3">{a.feedback}</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                      <div className="bg-surface-elevated rounded-lg p-3" data-testid={`report-evidence-${i}`}>
+                        <p className="text-xs uppercase tracking-wider text-ink-muted font-semibold mb-2">可觀察證據</p>
+                        <ul className="space-y-1.5 text-sm text-ink-secondary leading-relaxed list-disc pl-4">
+                          {(a.evidence ?? []).map((item, j) => (
+                            <li key={j}>{item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div className="bg-surface-elevated rounded-lg p-3" data-testid={`report-suggestions-${i}`}>
+                        <p className="text-xs uppercase tracking-wider text-ink-muted font-semibold mb-2">建議</p>
+                        <ul className="space-y-1.5 text-sm text-ink-secondary leading-relaxed list-disc pl-4">
+                          {(a.suggestions ?? []).map((item, j) => (
+                            <li key={j}>{item}</li>
+                          ))}
+                        </ul>
+                      </div>
                     </div>
-                    <div className="grid grid-cols-4 gap-2 pt-2 border-t border-border-subtle">
-                      {Object.entries(a.dimensions).map(([key, val]) => (
-                        <div key={key} className="text-center">
-                          <div className="text-[10px] text-ink-muted uppercase mb-1 font-semibold">
-                            {key === 'structure' ? '結構' :
-                             key === 'depth' ? '深度' :
-                             key === 'relevance' ? '相關' :
-                             key === 'clarity' ? '清晰' : key}
+                    <div className="grid grid-cols-5 gap-2 pt-2 border-t border-border-subtle">
+                      {DIMENSION_ORDER.map((key) => {
+                        const val = a.dimensions?.[key] ?? 0;
+                        return (
+                          <div key={key} className="text-center">
+                            <div className="text-[10px] text-ink-muted mb-1 font-semibold">{DIMENSION_LABELS[key]}</div>
+                            <div className={`text-base font-bold tabular-nums ${
+                              val >= 85 ? 'text-success' : val >= 70 ? 'text-warning' : 'text-danger'
+                            }`}>
+                              {val}
+                            </div>
                           </div>
-                          <div className={`text-base font-bold tabular-nums ${
-                            (val as number) >= 85 ? 'text-success' :
-                            (val as number) >= 70 ? 'text-warning' : 'text-danger'
-                          }`}>
-                            {val}
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </li>
                 );
@@ -336,7 +280,7 @@ ${a.feedback}
               再試一次
             </LinkButton>
             <LinkButton href="/dashboard" variant="ghost" fullWidth>
-              返回儀表板
+              練習紀錄
             </LinkButton>
           </section>
         </Container>
@@ -392,7 +336,8 @@ function RadarChart({
       viewBox={`0 0 ${size} ${size}`}
       role="img"
       aria-label="能力雷達圖 — 5 維度評分"
-      style={{ maxWidth: size }}
+      data-testid="report-radar"
+      style={{ maxWidth: size, overflow: 'visible' }}
     >
       {/* Grid rings */}
       {rings.map(({ v, pts }) => (

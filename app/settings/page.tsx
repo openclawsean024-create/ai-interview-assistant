@@ -1,12 +1,17 @@
 'use client';
 
+// app/settings/page.tsx
+// 設定頁：自備 API key（選填）、免費額度、練習紀錄、一鍵刪除（AC-008）。不需登入。
+// 所有設定只存在瀏覽器 localStorage 的 aiia.* key。
+
 export const dynamic = 'force-dynamic';
 
-import { useAuth } from '@/components/auth-provider';
 import { useLocale } from '@/app/i18n/locale-context';
-import { LanguageSwitcher } from '@/app/components/language-switcher';
 import { deleteSession } from '@/app/lib/session/session';
 import { FREE_TIER_LIMIT, readQuota } from '@/app/lib/session/quota';
+import { readApiKey, writeApiKey } from '@/app/lib/storage/local';
+import { loadHistory, type PracticeHistoryEntry } from '@/app/lib/practice/store';
+import { JOB_LEVEL_LABELS, JOB_TYPE_LABELS } from '@/app/lib/questions/bank';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import {
@@ -18,90 +23,46 @@ import {
   Button,
   Modal,
   IconKey,
-  IconMic,
   IconZap,
   IconShield,
   IconTrash,
-  IconDownload,
   IconBook,
   IconCheck,
-  IconSparkle,
-  IconDownload as IconDownloadIcon,
 } from '@/app/components/ui-primitives';
 import SessionInit from '@/app/components/session-init';
 
 export default function SettingsPage() {
-  const { user, isSignedIn, isLoaded } = useAuth();
-  const { t, locale } = useLocale();
+  const { locale } = useLocale();
   const isEnglish = locale === 'en';
+  const lang = isEnglish ? 'en' : 'zh';
   const [apiKey, setApiKey] = useState('');
+  const [hasSavedKey, setHasSavedKey] = useState(false);
   const [saved, setSaved] = useState(false);
   const [testStatus, setTestStatus] = useState('');
   const [testStatusType, setTestStatusType] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
-  const [history, setHistory] = useState<any[]>([]);
-  const [historyLoaded, setHistoryLoaded] = useState(false);
-  const [ttsSpeed, setTtsSpeed] = useState('1.0');
-  const [recognitionLang, setRecognitionLang] = useState('zh-TW');
-  const [micDevices, setMicDevices] = useState<MediaDeviceInfo[]>([]);
-  const [selectedMicId, setSelectedMicId] = useState('');
+  const [history, setHistory] = useState<PracticeHistoryEntry[]>([]);
   const [sessionUsed, setSessionUsed] = useState(0);
   const [sessionDeleted, setSessionDeleted] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  // Load settings from chrome.storage.sync (Chrome extension) or localStorage
   useEffect(() => {
-    if (typeof (window as any).chrome !== 'undefined' && (window as any).chrome.storage) {
-      (window as any).chrome.storage.sync.get(['apiKey', 'answerHistory', 'ttsSpeed', 'recognitionLang', 'selectedMicId'], (data: any) => {
-        if (data.apiKey) setApiKey(data.apiKey);
-        if (data.answerHistory) { setHistory(data.answerHistory); setHistoryLoaded(true); }
-        if (data.ttsSpeed) setTtsSpeed(data.ttsSpeed);
-        if (data.recognitionLang) setRecognitionLang(data.recognitionLang);
-        if (data.selectedMicId) setSelectedMicId(data.selectedMicId);
-      });
-    } else if (isSignedIn && user?.id) {
-      const stored = localStorage.getItem(`apikey_${user.id}`);
-      if (stored) setApiKey(stored);
+    const stored = readApiKey();
+    setApiKey(stored);
+    setHasSavedKey(!!stored);
+    setHistory(loadHistory());
+  }, []);
 
-      const hist = localStorage.getItem(`history_${user.id}`);
-      if (hist) { setHistory(JSON.parse(hist)); setHistoryLoaded(true); }
-
-      const speed = localStorage.getItem(`ttsSpeed_${user.id}`);
-      if (speed) setTtsSpeed(speed);
-      const lang = localStorage.getItem(`recognitionLang_${user.id}`);
-      if (lang) setRecognitionLang(lang);
-    }
-  }, [isSignedIn, user?.id]);
-
-  async function loadMicDevices() {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      stream.getTracks().forEach(t => t.stop());
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      setMicDevices(devices.filter(d => d.kind === 'audioinput'));
-    } catch (e) {
-      // No mic permission
-    }
-  }
-
-  async function saveApiKey() {
-    if (!apiKey.trim()) {
+  function saveApiKey() {
+    const key = apiKey.trim();
+    if (!key) {
       setTestStatus(isEnglish ? 'Please enter an API Key' : '請輸入 API Key');
       setTestStatusType('error');
       return;
     }
-    const key = apiKey.trim();
-
-    if (typeof (window as any).chrome !== 'undefined' && (window as any).chrome.storage) {
-      await new Promise<void>((resolve) => {
-        (window as any).chrome.storage.sync.set({ apiKey: key }, () => resolve());
-      });
-    }
-
-    if (isSignedIn && user?.id) {
-      localStorage.setItem(`apikey_${user.id}`, key);
-    }
-
+    writeApiKey(key);
+    setHasSavedKey(true);
     setSaved(true);
+    setSessionDeleted(false);
     setTestStatus('');
     setTestStatusType('idle');
     // 通知 DemoModeBadge 更新
@@ -118,10 +79,10 @@ export default function SettingsPage() {
     setTestStatus(isEnglish ? 'Testing...' : '測試中...');
     setTestStatusType('pending');
     try {
-      const res = await fetch('/api/test-key', {
+      const res = await fetch('/api/test-key/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ apiKey }),
+        body: JSON.stringify({ apiKey: apiKey.trim() }),
       });
       const data = await res.json();
       if (data.ok) {
@@ -137,102 +98,31 @@ export default function SettingsPage() {
     }
   }
 
-  function exportHistoryMD() {
-    if (!history.length) return;
-    const md = history.map(h =>
-      `## ${new Date(h.ts).toLocaleString('zh-TW')}\n\n**Q:** ${h.q}\n\n**A:** ${h.a}\n`
-    ).join('\n---\n\n');
-    const blob = new Blob([`# AI Interview History\n\n${md}`], { type: 'text/markdown' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `ai-interview-history-${Date.now()}.md`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
-  // v3.0 SPEC §17.4 AC-018: 一鍵刪除所有 aiia.* localStorage keys
+  // AC-008：一鍵刪除本產品在這個瀏覽器的全部資料（API key、練習 session、報告、統計、歷史）。
+  // 只保留介面語系偏好。
   function handleDeleteSession() {
     deleteSession();
     setSessionDeleted(true);
     setSessionUsed(0);
     setHistory([]);
-    setHistoryLoaded(true);
     setApiKey('');
+    setHasSavedKey(false);
+    setSaved(false);
+    setTestStatus('');
+    setTestStatusType('idle');
     setShowDeleteModal(false);
-    // 通知 SessionInit 重新讀 quota + 刪除事件
+    // 通知 SessionInit 與 DemoModeBadge 重新讀取狀態
     window.dispatchEvent(new CustomEvent('aiia:session-deleted'));
     window.dispatchEvent(new CustomEvent('aiia:byok-changed'));
   }
 
-  // 監聽 quota change 與 delete event
+  // 監聽 quota change
   useEffect(() => {
     setSessionUsed(readQuota().used);
     const onQuota = () => setSessionUsed(readQuota().used);
-    const onDeleted = () => {
-      setSessionUsed(0);
-      setSessionDeleted(true);
-    };
     window.addEventListener('aiia:quota-changed', onQuota);
-    window.addEventListener('aiia:session-deleted', onDeleted);
-    return () => {
-      window.removeEventListener('aiia:quota-changed', onQuota);
-      window.removeEventListener('aiia:session-deleted', onDeleted);
-    };
+    return () => window.removeEventListener('aiia:quota-changed', onQuota);
   }, []);
-
-  if (!isLoaded) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-bg">
-        <div className="flex items-center gap-3 text-primary">
-          <span className="status-dot status-dot-info animate-pulse-glow" />
-          <span className="text-sm font-medium">Loading…</span>
-        </div>
-      </div>
-    );
-  }
-
-  // v4: settings page works WITHOUT login for Chrome extension users
-  if (!isSignedIn) {
-    const isChrome = typeof (window as any).chrome !== 'undefined' && (window as any).chrome.storage;
-    if (!isChrome) {
-      return (
-        <div className="min-h-screen flex flex-col bg-bg">
-          <SkipLink />
-          <Navbar active="/settings" locale={isEnglish ? 'en' : 'zh'} />
-          <Container className="py-12 max-w-2xl">
-            <PageHeader
-              title={isEnglish ? 'Settings' : '設定'}
-              description={isEnglish
-                ? 'Some settings require the Chrome extension or sign-in.'
-                : '部分設定需要 Chrome 插件或登入。'}
-            />
-            <div className="card">
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-lg bg-primary/15 text-primary flex items-center justify-center flex-shrink-0">
-                  <IconBook size={20} />
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-h4 text-ink mb-2">
-                    {isEnglish ? 'Chrome Extension recommended' : '建議使用 Chrome 插件'}
-                  </h3>
-                  <p className="text-sm text-ink-secondary leading-relaxed mb-3">
-                    {isEnglish
-                      ? 'Install the Chrome Extension for the full experience. Alt+Shift+M to toggle listening. Settings auto-sync without sign-in.'
-                      : '請透過 Chrome 插件使用完整功能。安裝後 Alt+Shift+M 快速開關聆聽,設定自動同步,無需登入。'}
-                  </p>
-                  <Link href="/interview" className="btn-primary">
-                    {isEnglish ? 'Open Interview' : '開始面試演練'}
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </Container>
-          <Footer locale={isEnglish ? 'en' : 'zh'} />
-        </div>
-      );
-    }
-  }
 
   const freeRemaining = Math.max(0, FREE_TIER_LIMIT - sessionUsed);
 
@@ -245,18 +135,19 @@ export default function SettingsPage() {
       <main id="main-content">
         <Container className="py-8 lg:py-10 max-w-3xl">
           <PageHeader
-            eyebrow="v3.0"
+            eyebrow={isEnglish ? 'Settings' : '設定'}
             title={isEnglish ? 'Settings' : '設定'}
             description={isEnglish
-              ? 'API key, voice preferences, practice quota, and local session. All data stays in your browser.'
-              : 'API Key、語音偏好、練習額度、本機 session。所有資料只存於你的瀏覽器。'}
+              ? 'Optional API key, practice quota, practice history, and one-click data deletion. Settings are stored in this browser only.'
+              : '選填的 API Key、練習額度、練習紀錄與一鍵刪除。設定只儲存在這個瀏覽器。'}
             actions={
               <span
                 data-testid="aiia-settings-mode"
-                className={`tag ${apiKey ? '' : 'tag-muted'}`}
+                data-mode={hasSavedKey ? 'byok' : 'mock'}
+                className={`tag ${hasSavedKey ? '' : 'tag-muted'}`}
               >
-                <span className={`status-dot ${apiKey ? 'status-dot-success' : 'status-dot-warning'}`} />
-                {apiKey
+                <span className={`status-dot ${hasSavedKey ? 'status-dot-success' : 'status-dot-warning'}`} />
+                {hasSavedKey
                   ? (isEnglish ? 'LLM Mode' : 'LLM 模式')
                   : (isEnglish ? 'Demo Mode' : 'Demo 模式')}
               </span>
@@ -274,7 +165,9 @@ export default function SettingsPage() {
                   {isEnglish ? 'OpenAI API Key (BYOK)' : 'OpenAI API Key (BYOK)'}
                 </h2>
                 <p className="text-sm text-ink-muted">
-                  {isEnglish ? 'Bring your own key. Stored locally, never sent to our servers.' : '自帶 key,只存本機,不送伺服器。'}
+                  {isEnglish
+                    ? 'Optional. The key is stored in this browser. When you practise with it, your questions, answers and the key are relayed through this site\'s server to the AI provider.'
+                    : '選填。Key 儲存在這個瀏覽器；使用它練習時，題目、回答與 key 會經本站伺服器轉送給 AI 供應商。'}
                 </p>
               </div>
             </div>
@@ -356,10 +249,10 @@ export default function SettingsPage() {
               </div>
               <div>
                 <h2 id="session-heading" className="text-h3 text-ink">
-                  {isEnglish ? 'Local Session' : '本機 Session'}
+                  {isEnglish ? 'Local data' : '本機資料'}
                 </h2>
                 <p className="text-sm text-ink-muted">
-                  {isEnglish ? 'Anonymous-first. Stored in your browser only.' : 'anonymous-first,只存於你的瀏覽器。'}
+                  {isEnglish ? 'No account needed. Practice data is stored in this browser only.' : '不需帳號。練習資料只儲存在這個瀏覽器。'}
                 </p>
               </div>
             </div>
@@ -372,7 +265,7 @@ export default function SettingsPage() {
                     {isEnglish ? 'Free practice quota' : '免費練習額度'}
                   </span>
                   <span className="text-xs text-ink-muted">
-                    {isEnglish ? 'Resets when you delete the session' : '刪除 session 後重置'}
+                    {isEnglish ? 'Resets when you delete your data' : '刪除資料後重置'}
                   </span>
                 </div>
                 <div className="flex items-baseline gap-2 mb-3">
@@ -400,134 +293,25 @@ export default function SettingsPage() {
                   className="flex items-center gap-2 p-3 rounded-lg bg-success/10 text-success border border-success/30 text-sm"
                 >
                   <IconCheck size={16} />
-                  {isEnglish ? 'Session deleted. Quota reset.' : 'Session 已刪除,額度已重置。'}
+                  {isEnglish ? 'Deleted. All local data for this product has been removed.' : '已刪除。本產品在這個瀏覽器的資料已全部清除。'}
                 </div>
               )}
 
               <Button
                 variant="danger"
                 onClick={() => setShowDeleteModal(true)}
-                aria-label={isEnglish ? 'Delete local session' : '刪除本機 session'}
+                data-testid="open-delete-modal-btn"
+                aria-label={isEnglish ? 'Delete all my data' : '刪除我的全部資料'}
               >
                 <IconTrash size={16} />
-                {isEnglish ? 'Delete local session' : '刪除本機 session'}
+                {isEnglish ? 'Delete all my data' : '刪除資料'}
               </Button>
 
               <p className="text-xs text-ink-muted leading-relaxed">
                 {isEnglish
-                  ? 'Removes all aiia.* keys from this browser (session id, practice quota, events, BYOK API key). Cannot be undone.'
-                  : '清除本瀏覽器所有 aiia.* 資料 (session id、配額、事件、BYOK API key)。無法復原。'}
+                  ? 'Removes everything this product stored in this browser: API key, practice sessions, reports, usage stats and history. Only the interface language preference is kept. Cannot be undone.'
+                  : '清除本產品存在這個瀏覽器的全部資料：API key、練習 session、複盤報告、使用統計與歷史。只保留介面語系偏好。無法復原。'}
               </p>
-            </div>
-          </section>
-
-          {/* ===== Voice & TTS Section ===== */}
-          <section aria-labelledby="voice-heading" className="mb-10">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-lg bg-primary/15 text-primary flex items-center justify-center">
-                <IconMic size={20} />
-              </div>
-              <div>
-                <h2 id="voice-heading" className="text-h3 text-ink">
-                  {isEnglish ? 'Voice & Speech' : '語音與朗讀'}
-                </h2>
-                <p className="text-sm text-ink-muted">
-                  {isEnglish ? 'Recognition language, TTS speed, microphone device.' : '語音辨識語言、TTS 朗讀速度、麥克風裝置。'}
-                </p>
-              </div>
-            </div>
-
-            <div className="card space-y-5">
-              <div>
-                <label htmlFor="recog-lang" className="block text-sm font-semibold text-ink mb-2">
-                  {isEnglish ? 'Recognition language' : '語音辨識語言'}
-                </label>
-                <select
-                  id="recog-lang"
-                  value={recognitionLang}
-                  onChange={(e) => {
-                    setRecognitionLang(e.target.value);
-                    if (typeof (window as any).chrome !== 'undefined' && (window as any).chrome.storage) {
-                      (window as any).chrome.storage.sync.set({ recognitionLang: e.target.value });
-                    }
-                    if (isSignedIn && user?.id) localStorage.setItem(`recognitionLang_${user.id}`, e.target.value);
-                  }}
-                  className="input-field"
-                >
-                  <option value="zh-TW">{isEnglish ? 'Chinese (Traditional)' : '中文 (繁體)'}</option>
-                  <option value="zh-CN">{isEnglish ? 'Chinese (Simplified)' : '中文 (简体)'}</option>
-                  <option value="en-US">English</option>
-                  <option value="ja-JP">{isEnglish ? 'Japanese' : '日本語'}</option>
-                  <option value="ko-KR">{isEnglish ? 'Korean' : '한국어'}</option>
-                </select>
-              </div>
-
-              <div>
-                <label htmlFor="tts-speed" className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-semibold text-ink">{isEnglish ? 'TTS speed' : 'TTS 朗讀速度'}</span>
-                  <span className="text-sm font-mono text-primary">{parseFloat(ttsSpeed).toFixed(1)}x</span>
-                </label>
-                <input
-                  id="tts-speed"
-                  type="range"
-                  min="0.5"
-                  max="2"
-                  step="0.1"
-                  value={ttsSpeed}
-                  onChange={(e) => {
-                    setTtsSpeed(e.target.value);
-                    if (typeof (window as any).chrome !== 'undefined' && (window as any).chrome.storage) {
-                      (window as any).chrome.storage.sync.set({ ttsSpeed: e.target.value });
-                    }
-                    if (isSignedIn && user?.id) localStorage.setItem(`ttsSpeed_${user.id}`, e.target.value);
-                  }}
-                  className="w-full h-2 bg-surface-elevated rounded-full appearance-none cursor-pointer accent-primary"
-                  aria-label={isEnglish ? 'TTS speed' : 'TTS 朗讀速度'}
-                />
-                <div className="flex justify-between mt-1 text-xs text-ink-muted font-mono">
-                  <span>0.5x</span>
-                  <span>1.0x</span>
-                  <span>2.0x</span>
-                </div>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label htmlFor="mic-device" className="text-sm font-semibold text-ink">
-                    {isEnglish ? 'Microphone device' : '麥克風裝置'}
-                  </label>
-                  <Button variant="ghost" onClick={loadMicDevices}>
-                    {isEnglish ? 'Refresh' : '重新整理'}
-                  </Button>
-                </div>
-                {micDevices.length === 0 ? (
-                  <p className="text-xs text-ink-muted">
-                    {isEnglish
-                      ? 'Click Refresh to load devices (requires microphone permission).'
-                      : '點擊重新整理以載入麥克風列表(需授權麥克風權限)。'}
-                  </p>
-                ) : (
-                  <select
-                    id="mic-device"
-                    value={selectedMicId}
-                    onChange={(e) => {
-                      const micId = e.target.value;
-                      setSelectedMicId(micId);
-                      if (typeof (window as any).chrome !== 'undefined' && (window as any).chrome.storage) {
-                        (window as any).chrome.storage.sync.set({ selectedMicId: micId });
-                      }
-                      if (isSignedIn && user?.id) localStorage.setItem(`selectedMicId_${user.id}`, micId);
-                    }}
-                    className="input-field"
-                  >
-                    {micDevices.map((mic, i) => (
-                      <option key={mic.deviceId} value={mic.deviceId}>
-                        {mic.label || `${isEnglish ? 'Microphone' : '麥克風'} ${i + 1}`}
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </div>
             </div>
           </section>
 
@@ -542,66 +326,47 @@ export default function SettingsPage() {
                   {isEnglish ? 'Practice History' : '練習歷史'}
                 </h2>
                 <p className="text-sm text-ink-muted">
-                  {isEnglish ? 'Export your past sessions as Markdown.' : '將過去練習匯出為 Markdown。'}
+                  {isEnglish ? 'Finished debrief reports stored in this browser.' : '儲存在這個瀏覽器的複盤報告。'}
                 </p>
               </div>
             </div>
 
-            <div className="card">
-              {!historyLoaded ? (
-                <div className="text-ink-muted text-sm">{isEnglish ? 'Loading history…' : '載入歷史記錄中…'}</div>
-              ) : history.length === 0 ? (
+            <div className="card" data-testid="settings-history">
+              {history.length === 0 ? (
                 <div className="text-center py-8">
                   <IconBook size={32} className="mx-auto mb-3 text-ink-muted opacity-40" />
                   <p className="text-ink font-medium mb-1">
-                    {isEnglish ? 'No practice history yet' : '尚無練習記錄'}
+                    {isEnglish ? 'No practice history yet' : '尚無練習紀錄'}
                   </p>
                   <p className="text-sm text-ink-muted mb-4">
                     {isEnglish
-                      ? 'Start using the Chrome Extension to build your history.'
-                      : '開始使用 Chrome 插件來建立你的歷史記錄吧。'}
+                      ? 'Finish a mock interview to see your debrief reports here.'
+                      : '完成一次模擬面試後，複盤報告會列在這裡。'}
                   </p>
                   <Link href="/interview" className="btn-primary">
                     {isEnglish ? 'Start practice' : '開始練習'}
                   </Link>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-ink-secondary">
-                      {history.length} {isEnglish ? 'entries' : '筆'}
-                    </span>
-                    <Button variant="ghost" onClick={exportHistoryMD}>
-                      <IconDownload size={14} />
-                      {isEnglish ? 'Export MD' : '匯出 MD'}
-                    </Button>
-                  </div>
-                  <ul className="space-y-2 max-h-96 overflow-y-auto pr-1">
-                    {history.slice(0, 20).map((entry, i) => (
-                      <li key={i} className="p-3 bg-surface-elevated border border-border-subtle rounded-lg">
-                        <div className="flex justify-between items-baseline mb-1.5">
-                          <span className="text-xs font-semibold text-primary">Q</span>
-                          <span className="text-xs text-ink-muted">
-                            {new Date(entry.ts).toLocaleString(isEnglish ? 'en-US' : 'zh-TW')}
-                          </span>
-                        </div>
-                        <p className="text-sm text-ink mb-2 leading-relaxed">{entry.q}</p>
-                        {entry.cat && (
-                          <span className="text-[10px] text-ink-muted bg-surface px-1.5 py-0.5 rounded mr-2">
-                            {entry.cat === 'interview' ? (isEnglish ? 'Interview' : '面試模式') :
-                             entry.cat === 'practice' ? (isEnglish ? 'Practice' : '練習模式') :
-                             entry.cat}
-                          </span>
-                        )}
-                        {entry.a && (
-                          <p className="text-xs text-ink-secondary leading-relaxed line-clamp-3">
-                            {entry.a.substring(0, 140)}{entry.a.length > 140 ? '…' : ''}
-                          </p>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+                <ul className="space-y-2 max-h-96 overflow-y-auto pr-1">
+                  {history.slice(0, 20).map((entry) => (
+                    <li key={entry.reportId} className="p-3 bg-surface-elevated border border-border-subtle rounded-lg">
+                      <Link href={`/report/${entry.reportId}`} className="flex items-baseline justify-between gap-3 hover:text-primary">
+                        <span className="text-sm text-ink">
+                          {JOB_TYPE_LABELS[entry.jobType as keyof typeof JOB_TYPE_LABELS]?.[lang] ?? entry.jobType}
+                          {' · '}
+                          {JOB_LEVEL_LABELS[entry.jobLevel as keyof typeof JOB_LEVEL_LABELS]?.[lang] ?? entry.jobLevel}
+                          {' · '}
+                          {entry.questionCount} {isEnglish ? 'questions' : '題'}
+                        </span>
+                        <span className="text-sm font-semibold text-primary tabular-nums">{entry.overallScore} / 100</span>
+                      </Link>
+                      <span className="text-xs text-ink-muted">
+                        {new Date(entry.completedAt).toLocaleString(isEnglish ? 'en-US' : 'zh-TW')}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
               )}
             </div>
           </section>
@@ -613,18 +378,18 @@ export default function SettingsPage() {
       <Modal
         open={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
-        title={isEnglish ? 'Delete local session?' : '刪除本機 session?'}
+        title={isEnglish ? 'Delete all my data?' : '刪除全部資料？'}
         description={isEnglish
-          ? 'This will permanently remove all aiia.* keys from this browser: session id, practice quota, events, and your BYOK API key. Cannot be undone.'
-          : '將永久清除本瀏覽器所有 aiia.* 資料:session id、配額、事件、BYOK API key。無法復原。'}
+          ? 'This permanently removes everything this product stored in this browser. Cannot be undone.'
+          : '將永久清除本產品存在這個瀏覽器的全部資料。無法復原。'}
         actions={
           <>
             <Button variant="ghost" onClick={() => setShowDeleteModal(false)} className="flex-1">
               {isEnglish ? 'Cancel' : '取消'}
             </Button>
-            <Button variant="danger" onClick={handleDeleteSession} className="flex-1">
+            <Button variant="danger" onClick={handleDeleteSession} className="flex-1" data-testid="delete-session-btn">
               <IconTrash size={16} />
-              {isEnglish ? 'Delete' : '刪除'}
+              {isEnglish ? 'Delete' : '確認刪除'}
             </Button>
           </>
         }
@@ -632,11 +397,14 @@ export default function SettingsPage() {
         <div className="space-y-2 text-sm text-ink-secondary">
           <p>{isEnglish ? 'The following will be removed:' : '將清除以下項目:'}</p>
           <ul className="space-y-1 pl-4 list-disc">
-            <li><code className="font-mono text-primary">aiia.session.uid</code> — {isEnglish ? 'Your anonymous session id' : '你的匿名 session id'}</li>
-            <li><code className="font-mono text-primary">aiia.session.quota</code> — {isEnglish ? 'Free practice count' : '免費練習計數'}</li>
-            <li><code className="font-mono text-primary">aiia.session.events</code> — {isEnglish ? 'Practice events log' : '練習事件記錄'}</li>
-            <li><code className="font-mono text-primary">aiia.byok.apiKey</code> — {isEnglish ? 'Your OpenAI API key' : '你的 OpenAI API key'}</li>
+            <li>{isEnglish ? 'Your API key (if saved)' : '你儲存的 API key（如有）'}</li>
+            <li>{isEnglish ? 'Practice sessions and debrief reports' : '練習 session 與複盤報告'}</li>
+            <li>{isEnglish ? 'Usage stats, quota count and practice history' : '使用統計、額度計數與練習歷史'}</li>
+            <li>{isEnglish ? 'Anonymous session id, consent choice and events' : '匿名 session id、同意紀錄與事件'}</li>
           </ul>
+          <p className="text-xs text-ink-muted">
+            {isEnglish ? 'Kept: interface language preference.' : '保留：介面語系偏好。'}
+          </p>
         </div>
       </Modal>
     </div>

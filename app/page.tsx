@@ -59,8 +59,8 @@ export default function LandingPage() {
                 </h1>
 
                 <p className="mt-6 text-lg text-ink-secondary leading-relaxed max-w-prose">
-                  繁中、職缺客製化的 STAR 結構練習。即時作答只保留為 opt-in 的低風險教練 —
-                  <strong className="text-ink"> 不做隱藏式代答</strong>。3 次免費、無需註冊、無需 API Key。
+                  繁中、依職務與職級出題的 STAR 結構練習。只做面試前演練與面試後複盤 —
+                  <strong className="text-ink"> 不做面試中的即時代答</strong>。3 次免費、無需註冊、無需 API Key。
                 </p>
 
                 <div className="mt-8 flex flex-col sm:flex-row gap-3">
@@ -153,14 +153,14 @@ export default function LandingPage() {
                 {
                   icon: <IconSparkle size={22} />,
                   title: 'Mock 模式預設',
-                  desc: '無需 API Key 即可離線練習 3 次完整面試,結構化 STAR 題庫隨機抽 5 題。BYOK 在 Settings 切換。',
+                  desc: '無需 API Key 即可完成 5 題模擬面試,題目來自單一 STAR 題庫,評分依明文 rubric。自備 API Key 可在設定頁選填。',
                   tag: 'SPEC §16',
                   tagClass: 'tag',
                 },
                 {
                   icon: <IconShield size={22} />,
                   title: 'anonymous-first',
-                  desc: '進站即可使用,不要求註冊。localStorage cuid + 一鍵刪除,個資不送伺服器。',
+                  desc: '進站即可使用,不要求註冊。練習資料存在瀏覽器,可一鍵刪除;伺服器不保存回答。',
                   tag: 'SPEC §17',
                   tagClass: 'tag',
                 },
@@ -235,7 +235,7 @@ export default function LandingPage() {
                 </thead>
                 <tbody className="text-sm">
                   {[
-                    { cap: '即時作答(可能有作弊風險)', theirs: '✓', ours: 'opt-in 教練' },
+                    { cap: '面試中即時代答(有作弊風險)', theirs: '✓', ours: '不做' },
                     { cap: '繁中職缺客製', theirs: '部分', ours: '✓' },
                     { cap: '面試前 5 題 STAR 演練', theirs: '✗', ours: '✓' },
                     { cap: '面試後證據化複盤', theirs: '✗', ours: '✓' },
