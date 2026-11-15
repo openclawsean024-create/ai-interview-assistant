@@ -10,7 +10,6 @@
 import type { Dimensions, LlmProvider } from './types';
 import { LlmAuthError, LlmHttpError } from './errors';
 import { buildEvidence, observe, OWN_WORDS_REMINDER } from '@/app/lib/scoring/rubric';
-import { buildStructureHints } from './structure-hints';
 
 export const OPENAI_BASE_URL = 'https://api.openai.com/v1';
 export const DEFAULT_TIMEOUT_MS = 30_000;
@@ -226,11 +225,6 @@ export function createHttpProvider(options: HttpProviderOptions = {}): LlmProvid
         improvements: stringList(parsed.improvements),
         radarData: normalizeDimensions(parsed.radarData),
       };
-    },
-
-    // 結構提示刻意不呼叫 LLM：固定骨架、不含答案內容，杜絕「代答」風險（AC-007）。
-    async structureHint(_ctx, params) {
-      return { mode: 'byok', hints: buildStructureHints(params.language === 'en' ? 'en' : 'zh') };
     },
 
     async validateKey(ctx) {

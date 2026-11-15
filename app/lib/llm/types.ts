@@ -57,11 +57,6 @@ export interface ReportResult extends ProviderMeta {
   radarData: Dimensions;
 }
 
-/** 答題結構提示：只給結構，不給答案內容；每則都必須提醒「請用自己的話」。 */
-export interface StructureHintResult extends ProviderMeta {
-  hints: string[];
-}
-
 export interface KeyValidationResult {
   ok: boolean;
   status?: number;
@@ -84,6 +79,5 @@ export interface LlmProvider {
     params: { jobType: string; jobLevel: string; askedQuestions: string[] },
   ): Promise<QuestionResult>;
   finalReport(ctx: LlmContext, params: { answers: Answer[]; jobType: string; jobLevel: string }): Promise<ReportResult>;
-  structureHint(ctx: LlmContext, params: { questionText: string; language: 'zh' | 'en' }): Promise<StructureHintResult>;
   validateKey(ctx: LlmContext): Promise<KeyValidationResult>;
 }

@@ -22,7 +22,6 @@ app/
   dashboard/  pricing/        練習紀錄統計、靜態定價頁
   sign-in/ sign-up/ login/ register/   localStorage 假登入（主要流程不需要）
   api/interview/{start,answer,end}/    模擬面試 API（只經 LlmProvider）
-  api/analyze/                只回傳答題結構提示；介面入口已停用，去留待 Sean 決定
   api/test-key/               自備 key 驗證（經 LlmProvider.validateKey）
   lib/llm/                    LlmProvider 介面、router（工廠／重試／降級／冷卻）、mock-provider、byok-provider
   lib/questions/              單一題庫（bank.ts）與 schema 驗證

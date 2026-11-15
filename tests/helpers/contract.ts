@@ -9,7 +9,6 @@ import type {
   KeyValidationResult,
   QuestionResult,
   ReportResult,
-  StructureHintResult,
 } from '@/app/lib/llm/types';
 
 const DIMENSION_KEYS = ['structure', 'depth', 'relevance', 'clarity', 'confidence'] as const;
@@ -78,12 +77,6 @@ export function expectReportResult(r: ReportResult) {
   expectStringArray(r.strengths);
   expectStringArray(r.improvements);
   expectDimensions(r.radarData);
-}
-
-export function expectStructureHintResult(r: StructureHintResult) {
-  expectMode(r);
-  expectStringArray(r.hints, { nonEmpty: true });
-  for (const hint of r.hints) expect(hint).toContain('請用自己的話');
 }
 
 export function expectKeyValidationResult(r: KeyValidationResult) {

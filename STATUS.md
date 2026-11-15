@@ -17,12 +17,12 @@
 | 上市前要補 | 補測試、接真實 AI 取代假資料、題庫與評分 | 補測試 → AC-001、AC-006；可替換 AI 介面 → AC-002、AC-003（正式接入屬 M2）；題庫與評分 → AC-004、AC-005 |
 | 主要風險 | 避免被當作面試代答工具；AI 成本 | AC-007；M1 全程 Mock、零付費 API 呼叫 |
 
-## 需要 Sean 決定的事項（M1 未代為決定）
+## Sean 的決定與待確認事項
 
-| # | 事項 | M1 暫行處置 | 待決定 |
+| # | 事項 | 處置 | 待決定 |
 |---|---|---|---|
 | 1 | ~~Chrome 擴充功能（面試中即時代答型態）~~ **已決定（2026-11-16）：封存到獨立 repo** | 7 個原始檔、`icons/`、`public/icons/`、`ai-interview-assistant-chrome-extension.zip` 已從本 repo 移除，未經修改封存於 private、archived（唯讀）的 [`openclawsean024-create/ai-interview-assistant-chrome-extension`](https://github.com/openclawsean024-create/ai-interview-assistant-chrome-extension)（來源 commit `60c788d`；本 repo 的 git 歷史仍保有完整紀錄） | — |
-| 2 | `/api/analyze`（原「單題建議答案」） | **介面上的入口已全部停用**（`/interview` 不再呼叫）。route **未刪除**，但改為只經 `LlmProvider.structureHint` 回傳固定的答題結構提示（每則含「請用自己的話」），忽略 request 中的 `apiKey`／`model`／`systemPrompt`，不呼叫任何外部 AI | 整個移除，或保留為結構提示 API |
+| 2 | ~~`/api/analyze`（原「單題建議答案」）~~ **已決定（2026-11-16）：整個移除** | `app/api/analyze/route.ts` 已整個移除，連同只服務它的 `LlmProvider.structureHint` 與 `app/lib/llm/structure-hints.ts`。介面早已不呼叫它；E2E 斷言 `GET`／`POST /api/analyze` 皆回 404 | — |
 | 3 | 設定頁的語音辨識語言／TTS 速度／麥克風選項 | 隨代答流程一併移除（它們只服務「聆聽題目、朗讀答案」）；同時移除只在擴充功能環境有效的 `chrome.storage` 分支 | M2 做「語音作答逐字稿」（FR-015）時是否需要恢復麥克風設定 |
 | 4 | Google Fonts | 為了讓頁面零外部請求（AC-006 的驗證條件）而移除 `<link>`，改用系統字型堆疊；外觀字型會依作業系統不同 | 是否改為自行託管字型 |
 
@@ -36,7 +36,7 @@
 | AC-004 | 題庫單一來源與 schema 驗證；通用題 ≥ 46、職務題 ≥ 60、每個職務 × 職級 ≥ 5 | ✅ | `tests/unit/question-bank.test.ts`；題庫 111 題（通用 51、職務 60）；E2E 題庫篩選 |
 | AC-005 | 明文、可重現的 rubric；空白 0 分且不捏造；回饋分 `evidence`／`suggestions`；報告頁分開顯示 | ✅ | `tests/unit/rubric.test.ts`（8 則虛構 fixture：空白、只有空白、極短、無量化、完整 STAR、含數字、不確定語氣、英文）；`PRD/RUBRIC.md`；E2E 報告頁「可觀察證據」「建議」區塊 |
 | AC-006 | 無 key、無登入，從 `/interview` 走完 5 題 → `/report/[id]`（總分、雷達圖、逐題回饋、匯出 Markdown） | ✅ | `e2e/practice-loop.spec.ts`；非 localhost 請求次數斷言為 0 |
-| AC-007 | 移除聆聽 → 建議答案 → 朗讀流程；擴充功能不在 `public/`；`/api/analyze` 只回結構提示 | ✅（擴充功能已封存移出） | `e2e/anti-proxy.spec.ts`、`tests/unit/repo-hygiene.test.ts`、`tests/unit/api-routes.test.ts`；`git ls-files public \| grep -E "manifest.json\|sidePanel\|content.js\|background.js\|popup"` 無結果（exit 1） |
+| AC-007 | 移除聆聽 → 建議答案 → 朗讀流程；擴充功能不在 `public/`（已封存移出）；`/api/analyze` 已整個移除 | ✅（擴充功能已封存移出） | `e2e/anti-proxy.spec.ts`、`tests/unit/repo-hygiene.test.ts`、`tests/unit/api-routes.test.ts`；`git ls-files public \| grep -E "manifest.json\|sidePanel\|content.js\|background.js\|popup"` 無結果（exit 1） |
 | AC-008 | 一鍵刪除清除全部 key（API key、session、報告、統計、歷史），顯示「已刪除」，Demo 模式標示回到無 key | ✅ | `e2e/delete-data.spec.ts`（寫入 `apikey_test`、`report_test`、`interview_session_test`、`usage_test`、`aiia.session` 等 15 個虛構 key 後點 `delete-session-btn`）；`tests/unit/storage.test.ts` |
 | AC-009 | 同意 modal 與 README 的說明與實際資料流一致 | ✅ | `e2e/consent.spec.ts`、`tests/unit/repo-hygiene.test.ts`；`grep -n "不上 server\|不送伺服器" README.md app/components/session-init.tsx` 無結果（exit 1） |
 | AC-010 | SOP 指令皆可執行並記錄 exit code；無真實憑證；fixture 只用虛構資料；`git diff --check` 通過 | ✅ | `tests/unit/repo-hygiene.test.ts`；`bash scripts/check-credentials.sh`；下方 Deterministic checks |
@@ -45,16 +45,16 @@
 
 ## Deterministic checks（2026-11-16，Node v26.13.1、npm 11.20.0、macOS arm64）
 
-本機結果是在擴充功能封存後的最終工作樹上執行（磁碟空間已恢復）。
+本機結果是在擴充功能封存、`/api/analyze` 移除後的最終工作樹上執行（磁碟空間已恢復）。
 
 | Command | Exit | Evidence |
 |---|---:|---|
 | `npm ci` | 0 | 在 `7e4c2aa` 上從乾淨狀態安裝完成（有 install-scripts 警告）；之後 `package.json`／lockfile 未再變更，CI 每次也都從 `npm ci` 開始 |
 | `npm run lint` | 0 | No ESLint warnings or errors |
 | `npm run typecheck` | 0 | `tsc --noEmit` 無型別錯誤（含 `tests/`、`e2e/`；`strict: false`） |
-| `npm test` | 0 | Vitest：8 個測試檔、144 個測試全部通過 |
+| `npm test` | 0 | Vitest：8 個測試檔、138 個測試全部通過（移除 `/api/analyze` 時刪掉 7 個只測該端點／`structureHint` 的測試，新增 1 個斷言 route 已不存在；其餘斷言未修改） |
 | `npm run build` | 0 | Next.js production build 成功 |
-| `npm run e2e` | 0 | Playwright（Chromium）：14 passed (13.6s)；外部請求次數 0。先前在 `7e4c2aa` 上本機曾因磁碟空間不足（ENOSPC）4 個失敗，不是斷言失敗；同一份程式在 CI（commit `c6a446b`、`60c788d`）也都 14 passed |
+| `npm run e2e` | 0 | Playwright（Chromium）：14 passed (13.4s)，其中 `/api/analyze` 測試改為斷言 GET／POST 皆 404；外部請求次數 0。先前在 `7e4c2aa` 上本機曾因磁碟空間不足（ENOSPC）4 個失敗，不是斷言失敗；同一份程式在 CI（commit `c6a446b`、`60c788d`）也都 14 passed |
 | `git diff --check` | 0 | 工作樹無 whitespace 錯誤；`git diff --check origin/master...HEAD` 也 exit 0 |
 | `bash scripts/check-credentials.sh` | 0 | 未發現真實憑證樣式 |
 | `bash scripts/verify-mvp.sh http://localhost:3111` | 0 | 本機 `next start` 下 8 passed／0 failed（選用的 API smoke，在前一版程式執行） |
@@ -74,7 +74,7 @@
 ## M1 主要變更
 
 - **測試與 CI**：新增 `typecheck`／`test`／`e2e` scripts、Vitest、Playwright、`.github/workflows/ci.yml`（PR 與非 `master` 分支 push 觸發）。
-- **AI 抽象層**：`LlmProvider` 增加 `structureHint`、`validateKey`；`router.ts` 為單一工廠並統一重試／降級／冷卻；`byok-provider.ts` 可注入 `fetch`、不自行重試、錯誤訊息不含 key 或上游原文。
+- **AI 抽象層**：`LlmProvider` 增加 `validateKey`；`router.ts` 為單一工廠並統一重試／降級／冷卻；`byok-provider.ts` 可注入 `fetch`、不自行重試、錯誤訊息不含 key 或上游原文。
 - **題庫**：`app/interview/components/questionBank.ts` 與 `mock-provider.ts` 內的題目整合到 `app/lib/questions/bank.ts`。
 - **評分**：`app/lib/scoring/rubric.ts`（純函式）取代原本依字數計分的 Mock。
 - **UI 閉環**：`/interview` 新增「開始模擬面試」；逐題作答頁顯示分數、5 維、可觀察證據、建議；結束後導向報告頁；`/interview`、作答頁、報告頁、設定頁、練習紀錄頁都不需要登入。
@@ -111,5 +111,5 @@ P1／P2（FR-010～FR-021）狀態未變，見 `PRD/SPEC.md` §6。
 
 ## 下一步
 
-1. Sean 覆審本 PR 的 scope，並決定上方「需要 Sean 決定的事項」第 1、2 項（Exit gate）。
+1. Sean 覆審本 PR 的 scope（Exit gate）。擴充功能與 `/api/analyze` 已決定並完成；第 3、4 項（麥克風設定、字型）可在覆審時一併確認。
 2. 覆審通過前不接正式 AI API、金流或任何真實個資，不做 production release。

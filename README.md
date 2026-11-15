@@ -77,7 +77,6 @@ API routes（全部只透過 `LlmProvider` 取得結果，route 內不直接呼�
 - `POST /api/interview/answer` — 評分一題並回傳下一題；回饋分為 `evidence` 與 `suggestions`
 - `POST /api/interview/end` — 產生複盤報告
 - `POST /api/test-key` — 驗證使用者自備的 key
-- `POST /api/analyze` — 介面入口已停用；只回傳固定的答題結構提示（每則含「請用自己的話」），去留待決定（見 `STATUS.md`）
 
 ## Chrome 擴充功能
 

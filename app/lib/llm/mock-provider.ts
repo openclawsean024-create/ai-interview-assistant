@@ -5,7 +5,6 @@
 import type { LlmProvider } from './types';
 import { getDefaultQuestionSet, getInterviewQuestionSet } from '@/app/lib/questions/bank';
 import { scoreAnswer, summarizeAnswers } from '@/app/lib/scoring/rubric';
-import { buildStructureHints } from './structure-hints';
 
 const DEFAULT_HINT = '描述 Situation、Task、Action、Result 四個部分，盡量量化你的成果。';
 
@@ -55,10 +54,6 @@ export const mockProvider: LlmProvider = {
       improvements: report.improvements,
       radarData: report.radarData,
     };
-  },
-
-  async structureHint(_ctx, params) {
-    return { mode: 'mock', hints: buildStructureHints(params.language === 'en' ? 'en' : 'zh') };
   },
 
   async validateKey() {

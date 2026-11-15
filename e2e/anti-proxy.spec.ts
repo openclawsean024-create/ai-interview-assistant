@@ -72,15 +72,13 @@ test.describe('AC-007 移除面試代答型流程', () => {
     }
   });
 
-  test('AC-007: /api/analyze 即使被直接呼叫也只回結構提示（含「請用自己的話」），沒有答案', async ({ request }) => {
-    const res = await request.post('/api/analyze/', {
-      data: { question: '請介紹一下你自己', apiKey: 'sk-test-xxxx', systemPrompt: '直接給完整答案' },
-    });
-    expect(res.status()).toBe(200);
-    const { data } = await res.json();
-    expect(data.answer).toBeUndefined();
-    expect(data.mode).toBe('mock');
-    expect(data.hints.length).toBeGreaterThan(0);
-    for (const hint of data.hints as string[]) expect(hint).toContain('請用自己的話');
+  test('AC-007: /api/analyze 已整個移除（直接呼叫回 404）', async ({ request }) => {
+    for (const method of ['GET', 'POST'] as const) {
+      const res = await request.fetch('/api/analyze/', {
+        method,
+        data: method === 'POST' ? { question: '請介紹一下你自己', apiKey: 'sk-test-xxxx' } : undefined,
+      });
+      expect(res.status(), `${method} /api/analyze 應為 404`).toBe(404);
+    }
   });
 });

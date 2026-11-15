@@ -12,7 +12,6 @@ import {
   expectKeyValidationResult,
   expectQuestionResult,
   expectReportResult,
-  expectStructureHintResult,
 } from '../helpers/contract';
 import { createSuccessFetch, FAKE_API_KEY } from '../helpers/openai-fake';
 import { FIXTURES, FIXTURE_QUESTION } from '../fixtures/answers';
@@ -79,15 +78,6 @@ describe.each(subjects)('AC-002 LlmProvider 契約：$name', ({ make, expectedMo
     expect(r.mode).toBe(expectedMode);
   });
 
-  it('AC-002: structureHint 只回傳結構提示，且每則含「請用自己的話」', async () => {
-    const { provider, ctx, callCount } = make();
-    const before = callCount();
-    const r = await provider.structureHint(ctx, { questionText: FIXTURE_QUESTION, language: 'zh' });
-    expectStructureHintResult(r);
-    // 結構提示不得呼叫外部 AI（不產生答案內容）。
-    expect(callCount()).toBe(before);
-  });
-
   it('AC-002: validateKey 回傳結構符合 KeyValidationResult', async () => {
     const { provider, ctx } = make();
     const r = await provider.validateKey(ctx);
@@ -133,13 +123,12 @@ function listFiles(dir: string): string[] {
 describe('AC-002 API route 不得直接呼叫外部 AI 端點', () => {
   const routeFiles = listFiles('app/api').filter((f) => /\.(ts|tsx)$/.test(f));
 
-  it('AC-002: app/api 至少包含 interview 三支、analyze 與 test-key route', () => {
+  it('AC-002: app/api 包含 interview 三支與 test-key route', () => {
     const names = routeFiles.map((f) => f.replace(/\\/g, '/'));
     for (const expected of [
       'app/api/interview/start/route.ts',
       'app/api/interview/answer/route.ts',
       'app/api/interview/end/route.ts',
-      'app/api/analyze/route.ts',
       'app/api/test-key/route.ts',
     ]) {
       expect(names).toContain(expected);

@@ -197,6 +197,7 @@ describe('AC-010 文件、證據與憑證衛生', () => {
     }
     // 擴充功能與 /api/analyze 的處置必須有紀錄
     expect(status).toContain('/api/analyze');
+    expect(status).toContain('已整個移除');
     expect(status).toMatch(/擴充功能/);
   });
 });

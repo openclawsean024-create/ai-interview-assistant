@@ -14,7 +14,7 @@
 - `scripts/check-credentials.sh` 憑證掃描。（AC-010）
 
 ### Changed
-- 所有 AI 相關 route（含 `/api/analyze`、`/api/test-key`）只經 `LlmProvider`；router 成為單一工廠，重試統一為至多 1 次，降級回應欄位為 `degraded`／`degradedReason`；連續失敗冷卻改為伺服器端記憶體。（AC-002、AC-003）
+- 所有 AI 相關 route（`/api/interview/*`、`/api/test-key`）只經 `LlmProvider`；router 成為單一工廠，重試統一為至多 1 次，降級回應欄位為 `degraded`／`degradedReason`；連續失敗冷卻改為伺服器端記憶體。（AC-002、AC-003）
 - localStorage key 統一為 `aiia.*`；設定頁「刪除資料」清除本站全部資料（含 API key、報告、session、統計、歷史），只保留語系偏好。（AC-008）
 - 同意 modal、README、設定頁與 Landing 的資料流說明改為與實際一致。（AC-009）
 - `/interview`、`/interview/[sessionId]`、`/report/[id]`、`/settings`、`/dashboard` 不再要求（假）登入。
@@ -22,12 +22,10 @@
 
 ### Removed
 - web 端「輸入或語音聆聽題目 → 建議答案 → 朗讀 → 下一句提示」流程與其介面文案。（AC-007）
+- `/api/analyze`（原單題建議答案端點）：依 Sean 決定整個移除，連同只服務它的 `LlmProvider.structureHint`。（AC-007）
 - Chrome 擴充功能（根目錄 7 個原始檔、`icons/`、zip，以及 `public/` 內的複本與 `public/icons/`）：依 Sean 決定封存到 private、archived 的 [`openclawsean024-create/ai-interview-assistant-chrome-extension`](https://github.com/openclawsean024-create/ai-interview-assistant-chrome-extension)，本 repo 移除。（AC-007）
 - 設定頁的語音辨識語言／TTS 速度／麥克風選項，以及只在擴充功能環境有效的 `chrome.storage` 分支（對應的代答流程已移除）。
 - API route 中在伺服器端無作用的 `logEvent`／`getOrCreateSession` 呼叫。
-
-### 待決定（未在 M1 處理）
-- `/api/analyze` 的去留（目前只回固定結構提示、介面入口停用）。
 
 ---
 
