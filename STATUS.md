@@ -61,7 +61,7 @@
 | `grep -rn "api.openai.com" app/api` | 1 | 無結果（外部端點只在 `app/lib/llm/byok-provider.ts`） |
 | `git ls-files public \| grep -E "manifest.json\|sidePanel\|content.js\|background.js\|popup"` | 1 | 無結果 |
 | `grep -n "不上 server\|不送伺服器" README.md app/components/session-init.tsx` | 1 | 無結果 |
-| GitHub Actions「CI」（PR #2，run 43756985917，commit `c6a446b`） | 0 | Ubuntu／Node 20 上全部步驟通過（3m39s）：Lint（No ESLint warnings or errors）→ Typecheck → Unit／contract tests（8 個檔全部通過）→ Build → E2E（14 passed）→ 擴充功能不在 `public/`（AC-007）→ `app/api` 無外部 AI 端點（AC-002）→ 憑證掃描、`git diff --check origin/master...HEAD`（AC-010） |
+| GitHub Actions「CI」（PR #2，最新 run 43757983456，commit `9fefee2`，E2E 14 passed；先前 run 43756985917 @ `c6a446b` 亦全部通過） | 0 | Ubuntu／Node 20 上全部步驟通過（3m39s）：Lint（No ESLint warnings or errors）→ Typecheck → Unit／contract tests（8 個檔全部通過）→ Build → E2E（14 passed）→ 擴充功能不在 `public/`（AC-007）→ `app/api` 無外部 AI 端點（AC-002）→ 憑證掃描、`git diff --check origin/master...HEAD`（AC-010） |
 
 憑證掃描補充：GOAL 原始指令 `git grep -nE "sk-[A-Za-z0-9_-]{20,}|sk_live|pk_live" -- . ':!*lock*'` 的命中只有「寫出這個樣式本身」的檔案（`GOAL.md`、`scripts/check-credentials.sh`、`tests/unit/repo-hygiene.test.ts`），沒有任何憑證；測試與 E2E 使用的 key 只有 `sk-test-xxxx` 類佔位字串。
 
