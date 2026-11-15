@@ -2,7 +2,7 @@
 
 - Project：AI 面試演練與複盤
 - Repo：`openclawsean024-create/ai-interview-assistant`（預設分支 `master`）
-- State：🟢 **M1 開發完成、10 條 AC 皆有通過的測試；等待 Sean 覆審（Exit gate）** — 2026-11-16
+- State：🟡 **M1 開發完成；本機 lint／typecheck／unit／build 已在最終提交通過，E2E 最終確認以 PR 上的 CI 為準（本機磁碟空間不足，見下方）；等待 Sean 覆審（Exit gate）** — 2026-11-16
 - 分支：`feat/m1`（自 `chore/prd-rebuild` @ `fe0e682` 分出；PR #1 尚未合併）
 - Spec：`PRD/SPEC.md` v4.0；Goal：`GOAL.md`（M1）；Rubric：`PRD/RUBRIC.md` v1.0.0
 - Stack：Next.js 14.2.5 + React 18 + TypeScript 5 + Tailwind 3；localStorage；Mock／BYOK AI provider；Vitest 2 + Playwright
@@ -42,7 +42,9 @@
 
 每條 AC 的測試名稱都以 `AC-xxx:` 開頭；對照表見 `SOP.md`「AC 與測試對照」。
 
-## Deterministic checks（2026-11-16，`feat/m1` 最終提交的工作樹，Node v26.13.1、npm 11.20.0、macOS arm64）
+## Deterministic checks（2026-11-16，Node v26.13.1、npm 11.20.0、macOS arm64）
+
+lint、typecheck、test、build 與各項 grep／憑證檢查是在程式最終提交 `7e4c2aa`（工作樹乾淨）上執行的結果。之後的 commit 只修改本檔。
 
 | Command | Exit | Evidence |
 |---|---:|---|
@@ -50,15 +52,15 @@
 | `npm run lint` | 0 | No ESLint warnings or errors |
 | `npm run typecheck` | 0 | `tsc --noEmit` 無型別錯誤（含 `tests/`、`e2e/`；`strict: false`） |
 | `npm test` | 0 | Vitest：8 個測試檔、143 個測試全部通過 |
-| `npm run build` | 0 | Next.js production build 成功，15 個 routes |
-| `npm run e2e` | 0 | Playwright（Chromium）：14 個測試全部通過；外部請求次數 0 |
-| `git diff --check` | 0 | 無 whitespace 錯誤（另以 `git diff --check origin/master...HEAD` 檢查整個分支，exit 0） |
+| `npm run build` | 0 | Next.js production build 成功 |
+| `npm run e2e` | 見下方 | **本機未能在最終提交上完成**：磁碟只剩約 100–170MB，14 個測試中 4 個（AC-004 題庫篩選、AC-006 練習閉環、AC-007 擴充功能 404、AC-008 一鍵刪除）因 `ENOSPC` 寫不進 trace／下載檔而失敗，錯誤皆為 ENOSPC、不是斷言失敗。在磁碟有空間、只差文件與兩處樣式修正的前一版程式上，14 個全部通過。**最終結果以 PR 上 GitHub Actions「CI」的 E2E 步驟為準** |
+| `git diff --check` | 0 | 工作樹無 whitespace 錯誤；`git diff --check origin/master...HEAD` 也 exit 0 |
 | `bash scripts/check-credentials.sh` | 0 | 未發現真實憑證樣式 |
-| `bash scripts/verify-mvp.sh http://localhost:3111` | 0 | 本機 `next start` 下 8 passed／0 failed（選用的 API smoke） |
+| `bash scripts/verify-mvp.sh http://localhost:3111` | 0 | 本機 `next start` 下 8 passed／0 failed（選用的 API smoke，在前一版程式執行） |
 | `grep -rn "api.openai.com" app/api` | 1 | 無結果（外部端點只在 `app/lib/llm/byok-provider.ts`） |
 | `git ls-files public \| grep -E "manifest.json\|sidePanel\|content.js\|background.js\|popup"` | 1 | 無結果 |
 | `grep -n "不上 server\|不送伺服器" README.md app/components/session-init.tsx` | 1 | 無結果 |
-| GitHub Actions「CI」 | 見 PR | PR 上的 CI 執行結果以 PR 頁面為準 |
+| GitHub Actions「CI」 | 見 PR | lint → typecheck → test → build → e2e 全套在 Ubuntu／Node 20 上執行；結果以 PR 頁面為準 |
 
 憑證掃描補充：GOAL 原始指令 `git grep -nE "sk-[A-Za-z0-9_-]{20,}|sk_live|pk_live" -- . ':!*lock*'` 的命中只有「寫出這個樣式本身」的檔案（`GOAL.md`、`scripts/check-credentials.sh`、`tests/unit/repo-hygiene.test.ts`），沒有任何憑證；測試與 E2E 使用的 key 只有 `sk-test-xxxx` 類佔位字串。
 
