@@ -1,57 +1,35 @@
 // app/api/test-key/route.ts
-// v3.0 SPEC §16.4 BYOK key validation
-// 本路由**僅**驗證 BYOK key 是否有效；無 key 時回 400，
-// 不是 fallback 路徑（分析請用 /api/analyze）
+// 驗證使用者自備的 API key 是否有效。驗證動作由 LlmProvider.validateKey 執行，
+// route 內不直接呼叫外部端點；回應只含固定錯誤代碼，不回傳上游原始訊息。
 
 import { NextRequest, NextResponse } from 'next/server';
-import { logEvent, getOrCreateSession } from '@/app/lib/session/session';
+import { buildCtx, resolveProvider } from '@/app/lib/llm/router';
+import { checkRateLimit, recordAuthFailure } from '@/app/lib/security/rate-limit';
 
 export const runtime = 'nodejs';
 
-const OPENAI_TIMEOUT_MS = 15_000;
-
 export async function POST(req: NextRequest) {
-  const startedAt = Date.now();
   try {
-    const { apiKey } = await req.json().catch(() => ({}));
-    const userId = getOrCreateSession().uid;
-
+    // 驗證 key 的次數另外限制，避免本站被拿來大量驗證外洩的 key。
+    const limited = checkRateLimit(req, { kind: 'test-key', usesKey: true });
+    if (limited) return limited;
+    const body = await req.json().catch(() => ({}));
+    const apiKey = typeof body?.apiKey === 'string' ? body.apiKey.trim() : '';
+    if (apiKey.length > 300) {
+      return NextResponse.json({ ok: false, error: 'API_KEY_TOO_LONG' }, { status: 400 });
+    }
     if (!apiKey) {
       return NextResponse.json({ ok: false, error: 'No API key provided' }, { status: 400 });
     }
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), OPENAI_TIMEOUT_MS);
+    const ctx = buildCtx({ apiKey });
+    const result = await resolveProvider(ctx).validateKey(ctx);
+    if (result.ok) return NextResponse.json({ ok: true });
+    if (result.status === 401 || result.status === 403) recordAuthFailure(req);
 
-    try {
-      const response = await fetch('https://api.openai.com/v1/models', {
-        headers: { Authorization: `Bearer ${apiKey}` },
-        signal: controller.signal,
-      });
-
-      if (response.ok) {
-        logEvent('test_key_ok', { userId, durationMs: Date.now() - startedAt });
-        return NextResponse.json({ ok: true });
-      }
-
-      const err = await response.json().catch(() => ({}));
-      logEvent('test_key_invalid', {
-        userId,
-        status: response.status,
-        durationMs: Date.now() - startedAt,
-      });
-      return NextResponse.json(
-        { ok: false, error: err.error?.message || 'Invalid API key' },
-        { status: 401 },
-      );
-    } finally {
-      clearTimeout(timeoutId);
-    }
-  } catch (error: any) {
-    const isTimeout = error?.name === 'AbortError';
-    return NextResponse.json(
-      { ok: false, error: isTimeout ? 'Request timed out (15s)' : error?.message ?? 'Network error' },
-      { status: isTimeout ? 504 : 500 },
-    );
+    const status = result.status === 401 || result.status === 403 ? 401 : result.status === 504 ? 504 : 502;
+    return NextResponse.json({ ok: false, error: result.error ?? 'KEY_CHECK_FAILED' }, { status });
+  } catch {
+    return NextResponse.json({ ok: false, error: 'INTERNAL_ERROR' }, { status: 500 });
   }
 }

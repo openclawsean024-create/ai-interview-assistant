@@ -1,98 +1,179 @@
 // app/lib/llm/router.ts
-// v3.0 SPEC §16.5 自動降級規則
+// AC-002：provider 的單一工廠（resolveProvider）。
+// AC-003：重試（至多 1 次）、降級 Mock、401／403 不降級、連續失敗冷卻。
+//
+// 冷卻機制在「伺服器端記憶體」生效（不再讀寫 window.localStorage）：
+//   - 以 API key 的 SHA-256 指紋為索引（不保存 key 本身）。
+//   - 同一把 key 連續 3 次請求最終都失敗（已含重試）→ 30 分鐘內直接走 Mock，不再呼叫外部供應商，
+//     回應標示 degraded: true、degradedReason: 'cooldown_active'。
+//   - 任何一次成功都會把連續失敗次數歸零。
+//   - 一個請求內若有多次 AI 呼叫（例如 /answer 先評分再出題），第一次降級後其餘呼叫直接降級，
+//     整個請求只記一次失敗。
+//   - 每個請求有整體期限 REQUEST_DEADLINE_MS；超過後不再呼叫外部供應商。
+//   - 冷卻表最多 MAX_COOLDOWN_ENTRIES 筆，超過時先清過期與最舊項目。
+//   - 限制：狀態存在單一 server process 的記憶體；serverless 多 instance 之間不共享、重啟後歸零。
 
-import type { LlmContext, LlmProvider } from './types';
+import { createHash } from 'crypto';
+import type { LlmContext, LlmProvider, ProviderMeta } from './types';
 import { mockProvider } from './mock-provider';
 import { byokProvider } from './byok-provider';
+import { LlmAuthError, LlmHttpError } from './errors';
 
-const RETRY_FORCE_MOCK_THRESHOLD = 3;
-const FORCE_MOCK_COOLDOWN_MS = 30 * 60 * 1000;
+export const MAX_RETRIES = 1;
+export const COOLDOWN_FAILURE_THRESHOLD = 3;
+export const COOLDOWN_MS = 30 * 60 * 1000;
+/** 單一 HTTP 請求呼叫外部供應商的整體期限（含重試）。 */
+export const REQUEST_DEADLINE_MS = 45_000;
+export const MAX_COOLDOWN_ENTRIES = 5000;
+const RETRIABLE_STATUS = new Set([429, 500, 502, 503, 504]);
 
-function readForceMockUntil(userId: string): number {
-  if (typeof window === 'undefined') return 0;
-  try {
-    const raw = window.localStorage.getItem(`aiia.llm.forceMockUntil.${userId}`);
-    return raw ? parseInt(raw, 10) : 0;
-  } catch {
-    return 0;
-  }
+export interface CooldownStore {
+  isActive(key: string, now: number): boolean;
+  recordFailure(key: string, now: number): void;
+  recordSuccess(key: string): void;
+  reset(): void;
+  size(): number;
 }
 
-function writeForceMockUntil(userId: string, until: number) {
-  if (typeof window === 'undefined') return;
-  try {
-    window.localStorage.setItem(`aiia.llm.forceMockUntil.${userId}`, String(until));
-  } catch {
-    /* ignore */
-  }
-}
-
-export function buildCtx(opts: {
-  mode: 'mock' | 'byok';
-  apiKey?: string;
-  userId: string;
-}): LlmContext {
-  const forceUntil = readForceMockUntil(opts.userId);
-  const now = Date.now();
-  if (forceUntil > now) {
-    return { mode: 'mock', userId: opts.userId, retryCount: 0 };
+export function createCooldownStore(
+  threshold = COOLDOWN_FAILURE_THRESHOLD,
+  cooldownMs = COOLDOWN_MS,
+  maxEntries = MAX_COOLDOWN_ENTRIES,
+): CooldownStore {
+  const state = new Map<string, { failures: number; until: number; lastAt: number }>();
+  function prune(now: number) {
+    if (state.size < maxEntries) return;
+    for (const [k, e] of Array.from(state.entries())) {
+      const expired = e.until !== 0 ? e.until <= now : e.lastAt + cooldownMs <= now;
+      if (expired) state.delete(k);
+    }
+    while (state.size >= maxEntries) {
+      const oldest = state.keys().next().value;
+      if (oldest === undefined) break;
+      state.delete(oldest);
+    }
   }
   return {
-    mode: opts.mode,
-    apiKey: opts.apiKey,
-    userId: opts.userId,
-    retryCount: 0,
+    isActive(key, now) {
+      const entry = state.get(key);
+      if (!entry || entry.until === 0) return false;
+      if (entry.until > now) return true;
+      state.delete(key); // 冷卻期滿，重新計數
+      return false;
+    },
+    recordFailure(key, now) {
+      let entry = state.get(key);
+      if (!entry) {
+        prune(now);
+        entry = { failures: 0, until: 0, lastAt: now };
+      }
+      entry.failures += 1;
+      entry.lastAt = now;
+      if (entry.failures >= threshold) entry.until = now + cooldownMs;
+      state.set(key, entry);
+    },
+    recordSuccess(key) {
+      state.delete(key);
+    },
+    reset() {
+      state.clear();
+    },
+    size() {
+      return state.size;
+    },
   };
 }
 
-export function pickProvider(ctx: LlmContext): LlmProvider {
-  return ctx.mode === 'byok' && ctx.apiKey ? byokProvider : mockProvider;
+/** process 層級的預設冷卻狀態（伺服器端生效）。 */
+export const serverCooldown: CooldownStore = createCooldownStore();
+
+export function fingerprintKey(apiKey: string): string {
+  return createHash('sha256').update(apiKey).digest('hex').slice(0, 16);
 }
 
-export async function safeCall<T extends { mode: string }>(
+export interface RouterDeps {
+  mock?: LlmProvider;
+  byok?: LlmProvider;
+  cooldown?: CooldownStore;
+  now?: () => number;
+}
+
+export function buildCtx(opts: { apiKey?: string | null; now?: number }): LlmContext {
+  const apiKey = opts.apiKey?.trim() || undefined;
+  return {
+    mode: apiKey ? 'byok' : 'mock',
+    apiKey,
+    retryCount: 0,
+    deadline: (opts.now ?? Date.now()) + REQUEST_DEADLINE_MS,
+  };
+}
+
+/** 單一工廠：依 ctx 選擇 provider。沒有 key 一律 Mock。 */
+export function resolveProvider(ctx: LlmContext, deps: RouterDeps = {}): LlmProvider {
+  return ctx.mode === 'byok' && ctx.apiKey ? deps.byok ?? byokProvider : deps.mock ?? mockProvider;
+}
+
+function isRetriable(err: unknown): boolean {
+  if (!(err instanceof LlmHttpError)) return false;
+  if (err.kind === 'timeout' || err.kind === 'network') return true;
+  return err.kind === 'http' && err.status !== undefined && RETRIABLE_STATUS.has(err.status);
+}
+
+function reasonOf(err: unknown): string {
+  if (err instanceof LlmHttpError) return err.message;
+  return 'openai_unknown';
+}
+
+/**
+ * 經由 provider 執行一次 AI 呼叫。
+ * - Mock：直接回傳。
+ * - BYOK：timeout／網路錯誤／429／5xx 重試至多 1 次；仍失敗（或其他非授權錯誤）→ 降級 Mock 並標示 degraded。
+ * - 401／403：拋 LlmAuthError（OPENAI_AUTH_FAILED），不降級。
+ */
+export async function safeCall<T extends ProviderMeta>(
   ctx: LlmContext,
   fn: (provider: LlmProvider) => Promise<T>,
+  deps: RouterDeps = {},
 ): Promise<T> {
-  const provider = pickProvider(ctx);
+  const mock = deps.mock ?? mockProvider;
+  const cooldown = deps.cooldown ?? serverCooldown;
+  const now = deps.now ?? Date.now;
 
-  // mock 路徑：直接回傳，不打外部
   if (ctx.mode !== 'byok' || !ctx.apiKey) {
-    const r = await fn(provider);
-    return { ...r, mode: 'mock' } as T;
+    const r = await fn(mock);
+    return { ...r, mode: 'mock' };
   }
 
-  try {
-    const r = await fn(provider);
-    return r;
-  } catch (err: any) {
-    const status = err?.status;
-    const isRetriable = status === 429 || status === 500 || status === 502 || status === 503 || status === 504 || err?.name === 'AbortError';
-    const isAuth = status === 401 || status === 403;
+  const degrade = async (degradedReason: string): Promise<T> => {
+    ctx.requestDegradedReason = degradedReason;
+    const fallback = await fn(mock);
+    return { ...fallback, mode: 'mock', degraded: true, degradedReason, fallbackMode: 'mock' };
+  };
 
-    // 401/403 不降級（必須讓 user 知道 key 失效），直接拋
-    if (isAuth) {
-      const e: any = new Error('OPENAI_AUTH_FAILED');
-      e.status = status;
-      throw e;
+  // 同一請求內前面的呼叫已降級：直接降級，不再呼叫外部、不重複記失敗。
+  if (ctx.requestDegradedReason) return degrade(ctx.requestDegradedReason);
+
+  const key = fingerprintKey(ctx.apiKey);
+  if (cooldown.isActive(key, now())) return degrade('cooldown_active');
+
+  const provider = resolveProvider(ctx, deps);
+  let lastError: unknown;
+  for (let attempt = ctx.retryCount; attempt <= MAX_RETRIES; attempt++) {
+    if (ctx.deadline !== undefined && now() >= ctx.deadline) {
+      lastError = lastError ?? new LlmHttpError('timeout');
+      break;
     }
-
-    if (isRetriable && ctx.retryCount < 1) {
-      return safeCall({ ...ctx, retryCount: ctx.retryCount + 1 }, fn);
+    try {
+      const result = await fn(provider);
+      cooldown.recordSuccess(key);
+      return result;
+    } catch (err) {
+      if (err instanceof LlmAuthError) throw err;
+      lastError = err;
+      if (!isRetriable(err)) break;
     }
-
-    // 連續失敗太多 → 強制 mock 30 分鐘
-    if (ctx.retryCount >= RETRY_FORCE_MOCK_THRESHOLD) {
-      writeForceMockUntil(ctx.userId, Date.now() + FORCE_MOCK_COOLDOWN_MS);
-    }
-
-    // 降級 mock 並標示 degraded
-    const fallback = await fn(mockProvider);
-    return {
-      ...fallback,
-      mode: 'mock',
-      degraded: true,
-      reason: err?.name === 'AbortError' ? 'openai_timeout' : `openai_${status ?? 'unknown'}`,
-      fallbackMode: 'mock',
-    } as T;
   }
+
+  cooldown.recordFailure(key, now());
+  return degrade(reasonOf(lastError));
 }

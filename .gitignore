@@ -28,3 +28,9 @@ next-env.d.ts
 # Misc
 .DS_Store
 *.pem
+
+# Tests
+coverage/
+test-results/
+playwright-report/
+blob-report/

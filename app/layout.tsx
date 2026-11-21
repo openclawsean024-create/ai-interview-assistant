@@ -1,5 +1,6 @@
 // app/layout.tsx
-// v3.0 SPEC §16 §17 anonymous-first + Mock 預設
+// anonymous-first + Mock 預設。
+// 不載入任何第三方資源（字型改用系統字型堆疊），讓頁面本身零外部請求（AC-006）。
 
 import type { Metadata } from 'next';
 import { AuthProvider } from '@/components/auth-provider';
@@ -20,12 +21,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <meta name="version" content="v3.0" />
             <meta name="aiia:mode-default" content="mock" />
             <meta name="aiia:anonymous-first" content="true" />
-            <link rel="preconnect" href="https://fonts.googleapis.com" />
-            <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-            <link
-              href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;600;700&display=swap"
-              rel="stylesheet"
-            />
           </head>
           <body data-aiia-version="v3.0">{children}</body>
         </html>

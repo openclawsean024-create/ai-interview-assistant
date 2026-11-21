@@ -1,5 +1,7 @@
 // app/lib/session/session.ts
-// v3.0 SPEC §17 anonymous-first 身分模型
+// 匿名 session（anonymous-first）：只在瀏覽器端運作，伺服器端不保存任何使用者資料。
+
+import { deleteAllLocalData } from '@/app/lib/storage/local';
 
 export const SESSION_KEY = 'aiia.session';
 export const SESSION_UID_KEY = 'aiia.session.uid';
@@ -88,12 +90,7 @@ export function logEvent(type: string, payload?: Record<string, unknown>) {
   }
 }
 
-export function deleteSession(): void {
-  if (typeof window === 'undefined') return;
-  const keys: string[] = [];
-  for (let i = 0; i < window.localStorage.length; i++) {
-    const k = window.localStorage.key(i);
-    if (k && k.startsWith('aiia.')) keys.push(k);
-  }
-  for (const k of keys) window.localStorage.removeItem(k);
+/** 一鍵刪除：清掉本產品在這個瀏覽器的全部資料（AC-008）。回傳被刪除的 key。 */
+export function deleteSession(): string[] {
+  return deleteAllLocalData();
 }

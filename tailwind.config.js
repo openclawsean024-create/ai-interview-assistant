@@ -58,8 +58,8 @@ module.exports = {
         danger:  { DEFAULT: '#DC2626', hover: '#B91C1C' },
       },
       fontFamily: {
-        sans: ['Plus Jakarta Sans', 'Noto Sans TC', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
-        tc:   ['Noto Sans TC', 'Plus Jakarta Sans', 'sans-serif'],
+        sans: ['Plus Jakarta Sans', 'Noto Sans TC', '-apple-system', 'BlinkMacSystemFont', 'PingFang TC', 'Microsoft JhengHei', 'Segoe UI', 'sans-serif'],
+        tc:   ['Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', 'Plus Jakarta Sans', 'sans-serif'],
         mono: ['JetBrains Mono', 'ui-monospace', 'Menlo', 'monospace'],
       },
       fontSize: {

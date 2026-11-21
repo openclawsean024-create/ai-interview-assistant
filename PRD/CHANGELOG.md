@@ -4,6 +4,36 @@
 
 ---
 
+## [M1] — 2026-11-16 — 可測試、無代答風險的 Mock 練習閉環（GOAL.md AC-001～AC-010）
+
+### Added
+- 測試基礎建設：`typecheck`／`test`／`e2e` scripts、Vitest 單元與契約測試（`tests/`）、Playwright E2E（`e2e/`）、CI（`.github/workflows/ci.yml`）。測試 setup 讓任何真實 `fetch` 直接拋錯。（AC-001、AC-003）
+- 單一題庫 `app/lib/questions/bank.ts` 與 schema 驗證；題庫可依職務、職級篩選。（AC-004）
+- 明文 rubric 評分 `app/lib/scoring/rubric.ts` 與說明文件 `PRD/RUBRIC.md`；回饋分為 `evidence`（可觀察的證據）與 `suggestions`（建議）。（AC-005）
+- `/interview` 可直接開始 5 題模擬面試（選職務與職級），不需 API key、不需登入；`/api/interview/answer` 回傳下一題與 `isComplete`。（AC-006）
+- `scripts/check-credentials.sh` 憑證掃描（逐一檢查命中字串、遮罩輸出、`--history` 掃描所有 commit）。（AC-010）
+- `/api/*` 伺服器端限流與 key 驗證失敗計數（`app/lib/security/rate-limit.ts`）；所有輸入欄位長度上限與職務／職級白名單（`app/lib/practice/request-validation.ts`）。（AC-003）
+
+### Changed
+- 所有 AI 相關 route（`/api/interview/*`、`/api/test-key`）只經 `LlmProvider`；router 成為單一工廠，重試統一為至多 1 次，降級回應欄位為 `degraded`／`degradedReason`；連續失敗冷卻改為伺服器端記憶體。（AC-002、AC-003）
+- localStorage key 統一為 `aiia.*`；設定頁「刪除資料」清除本站全部資料（含 API key、報告、session、統計、歷史），只保留語系偏好。（AC-008）
+- 同意 modal、README、設定頁與 Landing 的資料流說明改為與實際一致。（AC-009）
+- `/interview`、`/interview/[sessionId]`、`/report/[id]`、`/settings`、`/dashboard` 不再要求（假）登入。
+- 冷卻以「請求」為單位計算，每個請求有 45 秒整體期限；冷卻表有筆數上限。（AC-003）
+- Rubric 升為 v1.1.0（空白判定、日韓文長度、英文整詞比對、否定詞、數字去重、報告平均分；見 `PRD/RUBRIC.md` §9）。（AC-005）
+- 已產生報告的場次不能再結束一次。（AC-006）
+- `deploy.yml` 改為只能手動觸發。
+- 版面不再載入 Google Fonts，改用系統字型堆疊，頁面本身零外部請求。
+
+### Removed
+- web 端「輸入或語音聆聽題目 → 建議答案 → 朗讀 → 下一句提示」流程與其介面文案。（AC-007）
+- `/api/analyze`（原單題建議答案端點）：依 Sean 決定整個移除，連同只服務它的 `LlmProvider.structureHint`。（AC-007）
+- Chrome 擴充功能（根目錄 7 個原始檔、`icons/`、zip，以及 `public/` 內的複本與 `public/icons/`）：依 Sean 決定封存到 private、archived 的 [`openclawsean024-create/ai-interview-assistant-chrome-extension`](https://github.com/openclawsean024-create/ai-interview-assistant-chrome-extension)，本 repo 移除。（AC-007）
+- 設定頁的語音辨識語言／TTS 速度／麥克風選項，以及只在擴充功能環境有效的 `chrome.storage` 分支（對應的代答流程已移除）。
+- API route 中在伺服器端無作用的 `logEvent`／`getOrCreateSession` 呼叫。
+
+---
+
 ## [3.0.0] — 2026-08-08 — 實作契約補完，不改 sweet=5
 
 ### Changed

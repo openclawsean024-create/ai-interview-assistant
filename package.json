@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "e2e": "playwright test"
   },
   "dependencies": {
     "@clerk/nextjs": "^5.7.5",
@@ -19,6 +23,7 @@
     "tailwind-merge": "^2.4.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.65.1",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
@@ -27,6 +32,10 @@
     "eslint-config-next": "14.2.5",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^2.1.9"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }
