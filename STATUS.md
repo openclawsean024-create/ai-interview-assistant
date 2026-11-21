@@ -2,7 +2,7 @@
 
 - Project：AI 面試演練與複盤
 - Repo：`openclawsean024-create/ai-interview-assistant`（預設分支 `master`）
-- State：🟢 **M1 開發完成；SOP 全部檢查（含 E2E 14/14）在 PR #2 的 CI 上通過；等待 Sean 覆審（Exit gate）** — 2026-11-16
+- State：🟢 **M1 開發完成；子代理審查的發現已全部修正，SOP 全部檢查（含 E2E 15/15）在本機與 PR #2 的 CI 上通過；等待 Sean 覆審（Exit gate）** — 2026-11-22
 - PR：[#2](https://github.com/openclawsean024-create/ai-interview-assistant/pull/2)（Draft，base `master`）
 - 分支：`feat/m1`（自 `chore/prd-rebuild` @ `fe0e682` 分出；PR #1 尚未合併）
 - Spec：`PRD/SPEC.md` v4.0；Goal：`GOAL.md`（M1）；Rubric：`PRD/RUBRIC.md` v1.1.0
@@ -61,7 +61,7 @@
 | `grep -rn "api.openai.com" app/api` | 1 | 無結果（外部端點只在 `app/lib/llm/byok-provider.ts`） |
 | `git ls-files public \| grep -E "manifest.json\|sidePanel\|content.js\|background.js\|popup"` | 1 | 無結果 |
 | `grep -n "不上 server\|不送伺服器" README.md app/components/session-init.tsx` | 1 | 無結果 |
-| GitHub Actions「CI」（PR #2，最新 run 43760085985，commit `df5555f`） | 0 | Ubuntu／Node 20 上全部步驟通過：Lint（No ESLint warnings or errors）→ Typecheck → Unit／contract tests（138 passed）→ Build → E2E（14 passed）→ 擴充功能不在 `public/`（AC-007）→ `app/api` 無外部 AI 端點（AC-002）→ 憑證掃描、`git diff --check origin/master...HEAD`（AC-010）。先前各版本（`c6a446b`、`60c788d`、`9fefee2`、`bbf3f92`）的 CI 也都通過 |
+| GitHub Actions「CI」（PR #2，最新 run 44927586791，commit `9f012be`） | 0 | Ubuntu／Node 20 上全部步驟通過：Lint → Typecheck → Unit／contract tests（161 passed）→ Build → E2E（15 passed）→ 擴充功能不在 `public/`（AC-007）→ `app/api` 無外部 AI 端點（AC-002）→ 憑證掃描 `--history`、`git diff --check origin/master...HEAD`（AC-010）。先前各版本的 CI 也都通過 |
 
 憑證掃描補充：GOAL 原始指令 `git grep -nE "sk-[A-Za-z0-9_-]{20,}|sk_live|pk_live" -- . ':!*lock*'` 的命中只有「寫出這個樣式本身」的文件與測試，沒有任何憑證。`scripts/check-credentials.sh` 改用更精確的樣式（`sk_live_`／`pk_live_` 後面要接 10 個以上字元），因此不再需要排除這些文件；它逐一檢查每個命中字串，只排除 lockfile。測試與 E2E 使用的 key 只有 `sk-test-xxxx` 類佔位字串。
 
