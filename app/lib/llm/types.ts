@@ -13,6 +13,13 @@ export interface LlmContext {
   /** 使用者自備的 key；只在記憶體中傳遞，不得寫入 log 或錯誤訊息 */
   apiKey?: string;
   retryCount: number;
+  /** 這個 HTTP 請求的整體期限（epoch ms）；超過後不再呼叫外部供應商，直接降級 Mock。 */
+  deadline?: number;
+  /**
+   * 同一個請求內，前一次 AI 呼叫已降級時的原因。之後的呼叫直接降級，不再重試外部供應商，
+   * 冷卻計數也只記一次（冷卻以「請求」為單位，不是以 AI 呼叫為單位）。
+   */
+  requestDegradedReason?: string;
 }
 
 /** 所有 provider 回傳值共用的模式／降級標示。 */

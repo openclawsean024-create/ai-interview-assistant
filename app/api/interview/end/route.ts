@@ -4,37 +4,37 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { buildCtx, safeCall } from '@/app/lib/llm/router';
 import { errorResponse } from '@/app/lib/llm/http-errors';
-import { DEFAULT_JOB_LEVEL, DEFAULT_JOB_TYPE, MAX_ANSWER_CHARS, TOTAL_QUESTIONS } from '@/app/lib/practice/constants';
+import { MAX_ANSWER_CHARS, TOTAL_QUESTIONS } from '@/app/lib/practice/constants';
+import { readJobLevel, readJobType, readText, readTextList } from '@/app/lib/practice/request-validation';
+import { checkRateLimit } from '@/app/lib/security/rate-limit';
 
 export const runtime = 'nodejs';
 
-function stringList(value: unknown): string[] {
-  return Array.isArray(value) ? value.filter((s): s is string => typeof s === 'string') : [];
-}
-
 export async function POST(req: NextRequest) {
   try {
+    const limited = checkRateLimit(req, { kind: 'api', usesKey: Boolean(req.headers.get('x-api-key')) });
+    if (limited) return limited;
     const body = await req.json().catch(() => ({}));
     const sessionId = body?.sessionId;
     const rawAnswers: any[] = Array.isArray(body?.answers) ? body.answers : [];
-    const jobType = typeof body?.jobType === 'string' ? body.jobType : DEFAULT_JOB_TYPE;
-    const jobLevel = typeof body?.jobLevel === 'string' ? body.jobLevel : DEFAULT_JOB_LEVEL;
+    const jobType = readJobType(body?.jobType);
+    const jobLevel = readJobLevel(body?.jobLevel);
 
-    if (!sessionId || typeof sessionId !== 'string' || rawAnswers.length === 0) {
+    if (!sessionId || typeof sessionId !== 'string' || sessionId.length > 100 || rawAnswers.length === 0) {
       return NextResponse.json({ error: 'Missing sessionId or answers' }, { status: 400 });
     }
-    if (rawAnswers.length > TOTAL_QUESTIONS * 2) {
+    if (rawAnswers.length > TOTAL_QUESTIONS) {
       return NextResponse.json({ error: 'TOO_MANY_ANSWERS' }, { status: 400 });
     }
 
     const answers = rawAnswers.map((a, i) => ({
-      questionId: typeof a?.questionId === 'string' ? a.questionId : `q${i + 1}`,
-      questionText: typeof a?.questionText === 'string' ? a.questionText : '',
+      questionId: typeof a?.questionId === 'string' && a.questionId.length <= 20 ? a.questionId : `q${i + 1}`,
+      questionText: readText(a?.questionText, 'QUESTION_TOO_LONG'),
       answerText: typeof a?.answerText === 'string' ? a.answerText.slice(0, MAX_ANSWER_CHARS) : '',
       score: typeof a?.score === 'number' && Number.isFinite(a.score) ? Math.max(0, Math.min(100, Math.round(a.score))) : 0,
-      feedback: typeof a?.feedback === 'string' ? a.feedback : '',
-      evidence: stringList(a?.evidence),
-      suggestions: stringList(a?.suggestions),
+      feedback: readText(a?.feedback, 'FEEDBACK_TOO_LONG'),
+      evidence: readTextList(a?.evidence, 'EVIDENCE_TOO_LONG'),
+      suggestions: readTextList(a?.suggestions, 'SUGGESTIONS_TOO_LONG'),
       dimensions: a?.dimensions ?? null,
     }));
 
@@ -61,6 +61,6 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error) {
-    return errorResponse(error);
+    return errorResponse(error, req);
   }
 }

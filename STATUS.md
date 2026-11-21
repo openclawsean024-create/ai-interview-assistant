@@ -5,7 +5,7 @@
 - State：🟢 **M1 開發完成；SOP 全部檢查（含 E2E 14/14）在 PR #2 的 CI 上通過；等待 Sean 覆審（Exit gate）** — 2026-11-16
 - PR：[#2](https://github.com/openclawsean024-create/ai-interview-assistant/pull/2)（Draft，base `master`）
 - 分支：`feat/m1`（自 `chore/prd-rebuild` @ `fe0e682` 分出；PR #1 尚未合併）
-- Spec：`PRD/SPEC.md` v4.0；Goal：`GOAL.md`（M1）；Rubric：`PRD/RUBRIC.md` v1.0.0
+- Spec：`PRD/SPEC.md` v4.0；Goal：`GOAL.md`（M1）；Rubric：`PRD/RUBRIC.md` v1.1.0
 - Stack：Next.js 14.2.5 + React 18 + TypeScript 5 + Tailwind 3；localStorage；Mock／BYOK AI provider；Vitest 2 + Playwright
 
 ## Notion 商品資料庫對應
@@ -43,27 +43,27 @@
 
 每條 AC 的測試名稱都以 `AC-xxx:` 開頭；對照表見 `SOP.md`「AC 與測試對照」。
 
-## Deterministic checks（2026-11-16，Node v26.13.1、npm 11.20.0、macOS arm64）
+## Deterministic checks（2026-11-22，Node v26.13.1、npm 11.20.0、macOS arm64）
 
-本機結果是在擴充功能封存、`/api/analyze` 移除後的最終工作樹上執行（磁碟空間已恢復）。
+本機結果是在審查後補強（限流、冷卻、輸入上限、rubric v1.1.0、重複結束、憑證掃描、手動部署）完成後的最終工作樹上執行。
 
 | Command | Exit | Evidence |
 |---|---:|---|
 | `npm ci` | 0 | 在 `7e4c2aa` 上從乾淨狀態安裝完成（有 install-scripts 警告）；之後 `package.json`／lockfile 未再變更，CI 每次也都從 `npm ci` 開始 |
 | `npm run lint` | 0 | No ESLint warnings or errors |
 | `npm run typecheck` | 0 | `tsc --noEmit` 無型別錯誤（含 `tests/`、`e2e/`；`strict: false`） |
-| `npm test` | 0 | Vitest：8 個測試檔、138 個測試全部通過（移除 `/api/analyze` 時刪掉 7 個只測該端點／`structureHint` 的測試，新增 1 個斷言 route 已不存在；其餘斷言未修改） |
+| `npm test` | 0 | Vitest：9 個測試檔、161 個測試全部通過（新增 `tests/unit/security-hardening.test.ts` 13 個與 rubric、憑證掃描、文件一致性相關測試；既有斷言未放寬） |
 | `npm run build` | 0 | Next.js production build 成功 |
-| `npm run e2e` | 0 | Playwright（Chromium）：14 passed (13.4s)，其中 `/api/analyze` 測試改為斷言 GET／POST 皆 404；外部請求次數 0。先前在 `7e4c2aa` 上本機曾因磁碟空間不足（ENOSPC）4 個失敗，不是斷言失敗；同一份程式在 CI（commit `c6a446b`、`60c788d`）也都 14 passed |
+| `npm run e2e` | 0 | Playwright（Chromium）：15 passed (18.4s)，含新增的「已結束場次導向原報告」；外部請求次數 0 |
 | `git diff --check` | 0 | 工作樹無 whitespace 錯誤；`git diff --check origin/master...HEAD` 也 exit 0 |
-| `bash scripts/check-credentials.sh` | 0 | 未發現真實憑證樣式 |
+| `bash scripts/check-credentials.sh --history` | 0 | 目前檔案與所有 commit（51 個）都未發現真實憑證樣式 |
 | `bash scripts/verify-mvp.sh http://localhost:3111` | 0 | 本機 `next start` 下 8 passed／0 failed（選用的 API smoke，在前一版程式執行） |
 | `grep -rn "api.openai.com" app/api` | 1 | 無結果（外部端點只在 `app/lib/llm/byok-provider.ts`） |
 | `git ls-files public \| grep -E "manifest.json\|sidePanel\|content.js\|background.js\|popup"` | 1 | 無結果 |
 | `grep -n "不上 server\|不送伺服器" README.md app/components/session-init.tsx` | 1 | 無結果 |
 | GitHub Actions「CI」（PR #2，最新 run 43760085985，commit `df5555f`） | 0 | Ubuntu／Node 20 上全部步驟通過：Lint（No ESLint warnings or errors）→ Typecheck → Unit／contract tests（138 passed）→ Build → E2E（14 passed）→ 擴充功能不在 `public/`（AC-007）→ `app/api` 無外部 AI 端點（AC-002）→ 憑證掃描、`git diff --check origin/master...HEAD`（AC-010）。先前各版本（`c6a446b`、`60c788d`、`9fefee2`、`bbf3f92`）的 CI 也都通過 |
 
-憑證掃描補充：GOAL 原始指令 `git grep -nE "sk-[A-Za-z0-9_-]{20,}|sk_live|pk_live" -- . ':!*lock*'` 的命中只有「寫出這個樣式本身」的檔案（`GOAL.md`、`scripts/check-credentials.sh`、`tests/unit/repo-hygiene.test.ts`），沒有任何憑證；測試與 E2E 使用的 key 只有 `sk-test-xxxx` 類佔位字串。
+憑證掃描補充：GOAL 原始指令 `git grep -nE "sk-[A-Za-z0-9_-]{20,}|sk_live|pk_live" -- . ':!*lock*'` 的命中只有「寫出這個樣式本身」的文件與測試，沒有任何憑證。`scripts/check-credentials.sh` 改用更精確的樣式（`sk_live_`／`pk_live_` 後面要接 10 個以上字元），因此不再需要排除這些文件；它逐一檢查每個命中字串，只排除 lockfile。測試與 E2E 使用的 key 只有 `sk-test-xxxx` 類佔位字串。
 
 零真實網路呼叫的證明：
 
@@ -80,6 +80,15 @@
 - **UI 閉環**：`/interview` 新增「開始模擬面試」；逐題作答頁顯示分數、5 維、可觀察證據、建議；結束後導向報告頁；`/interview`、作答頁、報告頁、設定頁、練習紀錄頁都不需要登入。
 - **反代答**：移除 web 端聆聽／建議答案／朗讀／下一句提示流程與相關翻譯字串。
 - **資料**：localStorage key 統一為 `aiia.*`；一鍵刪除清除全部資料（保留語系偏好）；同意文案、README、設定頁、Landing 的資料流說明改為與實際一致。
+- **審查後補強（2026-11-22，Claude Code 子代理獨立審查：安全／正確性各一）**：
+  - 憑證掃描改為逐一檢查每個命中字串（同一行有佔位字串也不會漏掉真實 key）、只排除 lockfile、輸出只顯示位置與遮罩前綴；CI 以 `--history` 掃描所有 commit。
+  - `/api/*` 限流（每 IP 每分鐘 60 次、`/api/test-key` 每 10 分鐘 10 次）；同一 IP key 驗證失敗 5 次後帶 key 的請求暫時回 429（`app/lib/security/rate-limit.ts`）。
+  - 冷卻改以「請求」為單位：一個請求內第一次降級後其餘 AI 呼叫直接降級、只記一次失敗；每個請求有 45 秒整體期限；冷卻表與限流表都有筆數上限。
+  - 所有字串欄位有長度上限、職務／職級只接受題庫定義的值；BYOK 出題時已問過的題目改放在 user 訊息的資料欄位，不拼進 system 指令。
+  - Rubric v1.1.0：空白依「去除空白後長度為 0」判定、長度納入日文假名與韓文、英文關鍵詞整詞比對、「不可能」不算不確定語氣、數字去重忽略空白並排除「第」開頭的序數、整場平均改用逐題分數（報告總分與摘要一致）。
+  - 已結束的場次回到作答頁會導向原報告，不能再結束一次（不重複產生報告、不重複計額度）。
+  - README 與同意文案揭露伺服器記憶體會暫存 key 雜湊指紋與請求次數最多 30 分鐘。
+  - `deploy.yml` 改為只能手動觸發，合併到 `master` 不會自動部署。
 - **順手修正**（走通流程所必需）：報告頁以 UUID 當日期顯示為 Invalid Date → 改存 `createdAt`；作答頁使用了不存在的 `.btn-brand` 樣式 → 改用 `.btn-primary`；雷達圖標籤被裁切。
 
 ## FR 實作對照（P0）
@@ -101,12 +110,12 @@ P1／P2（FR-010～FR-021）狀態未變，見 `PRD/SPEC.md` §6。
 ## 已知限制與未處理事項
 
 - **Rubric 是關鍵詞與格式規則，不是語意理解**：可能誤判；「相關性」只是題目用詞重疊率，用同義詞作答會被低估（詳見 `PRD/RUBRIC.md` §7）。
-- **冷卻機制只在單一 server process 的記憶體生效**：serverless 多 instance 之間不共享，重啟後歸零。
+- **冷卻與限流只在單一 server process 的記憶體生效**：serverless 多 instance 之間不共享，重啟後歸零；來源 IP 取自平台提供的 `req.ip` 或 `x-forwarded-for`，若部署環境不覆寫這個 header，可被偽造來繞過限流。正式上線前應改用平台層級的限流或共用儲存。
 - **自備 key（BYOK）路徑只以假 `fetch` 驗證**，M1 未以真實 key 實測（依 GOAL，正式 AI 接入屬 M2）。
 - **假登入頁仍存在**（`/sign-in`、`/sign-up`、`/login`、`/register`、`components/auth-provider.tsx`）：主要流程已不需要，未刪除；`.btn-brand` 在這些頁面同樣沒有樣式。
 - **免費額度**仍只計數與提示，不阻擋使用（FR-012，P1）；提示文字已改為不宣稱可升級付費。
 - **Landing／定價頁**仍有未查證的競品規模說法與 v3.0 字樣、草案價格（SPEC §4、§3 標為待確認），M1 只修正了與資料流、代答相關的文案。
-- **GitHub Pages workflow（`deploy.yml`）** 未修改；合併到 `master` 後仍會觸發，先前持續失敗。Vercel 正式網址、lockfile 政策（npm／pnpm 並存）仍待確認（SPEC §13）。
+- **GitHub Pages workflow（`deploy.yml`）** 已改為只能手動觸發：靜態匯出不含 API routes，練習流程在 Pages 上無法運作，且 `<user>.github.io` 與其他 Pages 網站共用 origin。是否保留 Pages 待決定。Vercel 正式網址、lockfile 政策（npm／pnpm 並存）仍待確認（SPEC §13）。
 - **作答頁、報告頁**維持只有中文介面（M1 前即如此）。
 
 ## 下一步

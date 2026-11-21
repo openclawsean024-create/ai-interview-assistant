@@ -9,3 +9,9 @@ export const MAX_ANSWER_CHARS = 5000;
 
 export const DEFAULT_JOB_TYPE = 'software-engineer';
 export const DEFAULT_JOB_LEVEL = 'mid';
+
+/** 題目文字、回饋等其他字串欄位的長度上限（字元）。 */
+export const MAX_TEXT_FIELD_CHARS = 500;
+
+/** evidence／suggestions 這類清單的項目數上限。 */
+export const MAX_LIST_ITEMS = 10;

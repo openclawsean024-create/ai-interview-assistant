@@ -4,13 +4,20 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { buildCtx, resolveProvider } from '@/app/lib/llm/router';
+import { checkRateLimit, recordAuthFailure } from '@/app/lib/security/rate-limit';
 
 export const runtime = 'nodejs';
 
 export async function POST(req: NextRequest) {
   try {
+    // 驗證 key 的次數另外限制，避免本站被拿來大量驗證外洩的 key。
+    const limited = checkRateLimit(req, { kind: 'test-key', usesKey: true });
+    if (limited) return limited;
     const body = await req.json().catch(() => ({}));
     const apiKey = typeof body?.apiKey === 'string' ? body.apiKey.trim() : '';
+    if (apiKey.length > 300) {
+      return NextResponse.json({ ok: false, error: 'API_KEY_TOO_LONG' }, { status: 400 });
+    }
     if (!apiKey) {
       return NextResponse.json({ ok: false, error: 'No API key provided' }, { status: 400 });
     }
@@ -18,6 +25,7 @@ export async function POST(req: NextRequest) {
     const ctx = buildCtx({ apiKey });
     const result = await resolveProvider(ctx).validateKey(ctx);
     if (result.ok) return NextResponse.json({ ok: true });
+    if (result.status === 401 || result.status === 403) recordAuthFailure(req);
 
     const status = result.status === 401 || result.status === 403 ? 401 : result.status === 504 ? 504 : 502;
     return NextResponse.json({ ok: false, error: result.error ?? 'KEY_CHECK_FAILED' }, { status });

@@ -1,8 +1,9 @@
 name: Deploy to GitHub Pages
 
+# 只能手動觸發：靜態匯出（output: 'export'）不含 API routes，練習流程在 GitHub Pages 上無法運作；
+# 而且 <user>.github.io 與其他 Pages 網站共用同一個 origin（localStorage 也共用）。
+# 決定正式部署方式前，合併到 master 不會自動部署。
 on:
-  push:
-    branches: [master]
   workflow_dispatch:
 
 jobs:

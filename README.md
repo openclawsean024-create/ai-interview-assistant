@@ -23,7 +23,8 @@
 | Mock 模式（預設） | 練習資料只存在本機瀏覽器（localStorage 的 `aiia.*` key） | 作答內容會送到本站伺服器即時評分，不會轉送給任何 AI 供應商 |
 | 自備 API key | 同上；key 也存在本機瀏覽器（`aiia.byok.apiKey`） | 題目、回答與 key 會經本站伺服器轉送給 AI 供應商（OpenAI） |
 
-- 本站不會在伺服器保存回答、報告或 API key。
+- 本站不會在伺服器保存回答、報告或 API key 本身。為了限流與冷卻，伺服器記憶體會暫存 API key 的雜湊指紋（無法還原成 key）與來源 IP 的請求次數，最多 30 分鐘，伺服器重啟即清空；設定頁的「刪除資料」只能清除本機資料，無法清除這部分。
+- `/api/*` 有限流：每個來源 IP 每分鐘 60 次；驗證 key 每 10 分鐘 10 次；同一 IP 15 分鐘內 key 驗證失敗 5 次後，帶 key 的請求暫時回 429（無 key 的 Mock 練習不受影響）。
 - 設定頁的「刪除資料」會清除本產品在這個瀏覽器的全部資料（API key、練習 session、報告、使用統計與歷史），只保留介面語系偏好。
 - 首次進入時的同意說明與上表一致；修改資料流時必須同步修改同意文案（`app/components/session-init.tsx`）與本段。
 
@@ -84,7 +85,7 @@ API routes（全部只透過 `LlmProvider` 取得結果，route 內不直接呼�
 
 ## Deployment
 
-M1 不包含 production 部署與部署設定變更。Vercel 正式網址與 GitHub Pages workflow 的狀態見 `STATUS.md` 與 `PRD/SPEC.md` §13。
+M1 不包含 production 部署。GitHub Pages workflow 已改為只能手動觸發（靜態匯出不含 API routes）。Vercel 正式網址與 GitHub Pages 的去留見 `STATUS.md` 與 `PRD/SPEC.md` §13。
 
 ## License
 

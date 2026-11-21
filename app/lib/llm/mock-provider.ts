@@ -45,7 +45,11 @@ export const mockProvider: LlmProvider = {
 
   async finalReport(_ctx, params) {
     const report = summarizeAnswers(
-      (params.answers ?? []).map((a) => ({ answerText: a.answerText ?? '', questionText: a.questionText ?? '' })),
+      (params.answers ?? []).map((a) => ({
+        answerText: a.answerText ?? '',
+        questionText: a.questionText ?? '',
+        score: a.score,
+      })),
     );
     return {
       mode: 'mock',

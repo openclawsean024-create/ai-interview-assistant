@@ -26,7 +26,11 @@ function setup(fake: FakeFetch, opts: { timeoutMs?: number } = {}) {
     now: () => 1_000_000,
   };
   const ctx = buildCtx({ apiKey: FAKE_API_KEY });
-  const evaluate = () => safeCall(ctx, (p) => p.evaluate(ctx, params), deps);
+  // 每次呼叫模擬一個獨立的 HTTP 請求（ctx 以請求為單位）。
+  const evaluate = () => {
+    const requestCtx = buildCtx({ apiKey: FAKE_API_KEY });
+    return safeCall(requestCtx, (p) => p.evaluate(requestCtx, params), deps);
+  };
   return { deps, ctx, evaluate };
 }
 
@@ -146,8 +150,11 @@ describe('AC-003 連續失敗冷卻（伺服器端記憶體）', () => {
       cooldown: createCooldownStore(),
       now: () => now,
     };
-    const ctx = buildCtx({ apiKey: FAKE_API_KEY });
-    const evaluate = () => safeCall(ctx, (p) => p.evaluate(ctx, params), deps);
+    // 每次呼叫模擬一個獨立的 HTTP 請求（ctx 以請求為單位）。
+    const evaluate = () => {
+      const ctx = buildCtx({ apiKey: FAKE_API_KEY });
+      return safeCall(ctx, (p) => p.evaluate(ctx, params), deps);
+    };
 
     for (let i = 0; i < COOLDOWN_FAILURE_THRESHOLD; i++) {
       const r = await evaluate();
@@ -177,8 +184,11 @@ describe('AC-003 連續失敗冷卻（伺服器端記憶體）', () => {
       cooldown: createCooldownStore(),
       now: () => 5_000,
     };
-    const ctx = buildCtx({ apiKey: FAKE_API_KEY });
-    const evaluate = () => safeCall(ctx, (p) => p.evaluate(ctx, params), deps);
+    // 每次呼叫模擬一個獨立的 HTTP 請求（ctx 以請求為單位）。
+    const evaluate = () => {
+      const ctx = buildCtx({ apiKey: FAKE_API_KEY });
+      return safeCall(ctx, (p) => p.evaluate(ctx, params), deps);
+    };
 
     await evaluate();
     await evaluate(); // 連續失敗 2 次

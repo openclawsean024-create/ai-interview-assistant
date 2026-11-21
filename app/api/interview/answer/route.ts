@@ -5,29 +5,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { buildCtx, safeCall } from '@/app/lib/llm/router';
 import { errorResponse } from '@/app/lib/llm/http-errors';
-import {
-  DEFAULT_JOB_LEVEL,
-  DEFAULT_JOB_TYPE,
-  MAX_ANSWER_CHARS,
-  TOTAL_QUESTIONS,
-} from '@/app/lib/practice/constants';
+import { MAX_ANSWER_CHARS, TOTAL_QUESTIONS } from '@/app/lib/practice/constants';
+import { readAskedQuestions, readJobLevel, readJobType, readText } from '@/app/lib/practice/request-validation';
+import { checkRateLimit } from '@/app/lib/security/rate-limit';
 
 export const runtime = 'nodejs';
 
 export async function POST(req: NextRequest) {
   try {
+    const limited = checkRateLimit(req, { kind: 'api', usesKey: Boolean(req.headers.get('x-api-key')) });
+    if (limited) return limited;
     const body = await req.json().catch(() => ({}));
     const sessionId = body?.sessionId;
-    const questionText = typeof body?.questionText === 'string' ? body.questionText : '';
+    const questionText = readText(body?.questionText, 'QUESTION_TOO_LONG');
     const answerText = typeof body?.answerText === 'string' ? body.answerText : '';
-    const jobType = typeof body?.jobType === 'string' ? body.jobType : DEFAULT_JOB_TYPE;
-    const jobLevel = typeof body?.jobLevel === 'string' ? body.jobLevel : DEFAULT_JOB_LEVEL;
-    const askedFromBody: string[] = Array.isArray(body?.askedQuestions)
-      ? body.askedQuestions.filter((q: unknown): q is string => typeof q === 'string')
-      : [];
+    const jobType = readJobType(body?.jobType);
+    const jobLevel = readJobLevel(body?.jobLevel);
+    const askedFromBody = readAskedQuestions(body?.askedQuestions);
     const askedQuestions = askedFromBody.length > 0 ? askedFromBody : questionText ? [questionText] : [];
 
-    if (!sessionId || typeof sessionId !== 'string') {
+    if (!sessionId || typeof sessionId !== 'string' || sessionId.length > 100) {
       return NextResponse.json({ error: 'Missing sessionId' }, { status: 400 });
     }
     if (answerText.length > MAX_ANSWER_CHARS) {
@@ -63,6 +60,6 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error) {
-    return errorResponse(error);
+    return errorResponse(error, req);
   }
 }

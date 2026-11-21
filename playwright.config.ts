@@ -22,6 +22,7 @@ export default defineConfig({
     url: BASE_URL,
     reuseExistingServer: !process.env.CI,
     timeout: 240_000,
-    env: { NEXT_TELEMETRY_DISABLED: '1' },
+    // E2E 多個測試共用同一個本機 IP；調高每分鐘上限，避免測試之間互相觸發限流（限流行為由單元測試驗證）。
+    env: { NEXT_TELEMETRY_DISABLED: '1', API_RATE_LIMIT_PER_MIN: '1000' },
   },
 });

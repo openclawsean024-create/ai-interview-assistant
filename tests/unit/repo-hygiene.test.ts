@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { execFileSync } from 'node:child_process';
-import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { CONSENT_POINTS } from '@/app/components/session-init';
 
@@ -92,7 +93,10 @@ describe('AC-009 同意文案與實際資料流一致', () => {
     expect(text).toContain('若使用自備 API key');
     expect(text).toContain('題目、回答與 key 會經本站伺服器轉送給 AI 供應商');
     expect(text).toContain('不會在伺服器保存回答');
+    // 伺服器記憶體暫存 key 雜湊指紋（限流／冷卻）必須揭露
+    expect(text).toContain('雜湊指紋');
     expect(CONSENT_POINTS.en).toHaveLength(3);
+    expect(CONSENT_POINTS.en.join('\n')).toContain('hashed fingerprint');
   });
 
   it('AC-009: README 與 session-init 不再宣稱「不上 server／不送伺服器」', () => {
@@ -115,6 +119,15 @@ describe('AC-009 同意文案與實際資料流一致', () => {
     expect(readme).toContain('只存在本機瀏覽器');
     expect(readme).toContain('經本站伺服器轉送給 AI 供應商');
     expect(readme).toContain('不會在伺服器保存回答');
+    expect(readme).toContain('雜湊指紋');
+    expect(readme).toContain('限流');
+  });
+
+  it('AC-009: GitHub Pages 部署只能手動觸發（合併到 master 不會自動部署靜態匯出版本）', () => {
+    const deploy = readFileSync('.github/workflows/deploy.yml', 'utf8');
+    const on = deploy.slice(deploy.indexOf('\non:'), deploy.indexOf('\njobs:'));
+    expect(on).toContain('workflow_dispatch');
+    expect(on).not.toMatch(/\bpush:|pull_request/);
   });
 
   it('AC-009: 伺服器端 API route 不寫檔、不寫資料庫、不記錄回答', () => {
@@ -129,25 +142,58 @@ describe('AC-010 文件、證據與憑證衛生', () => {
   const trackedFiles = git(['ls-files']).split('\n').filter(Boolean);
 
   it('AC-010: repo 內沒有真實憑證樣式（sk-xxxx 類佔位字串除外）', () => {
-    const pattern = /sk-[A-Za-z0-9_-]{20,}|sk_live|pk_live/g;
-    // 規格文件與掃描設定本身會寫出「樣式」，不是憑證。
-    const patternDocs = new Set([
-      'GOAL.md',
-      'SOP.md',
-      'STATUS.md',
-      'scripts/check-credentials.sh',
-      'tests/unit/repo-hygiene.test.ts',
-    ]);
+    // 與 scripts/check-credentials.sh 相同的樣式；只排除 lockfile，逐一檢查每個命中的字串。
+    const pattern = /sk-[A-Za-z0-9_-]{20,}|(sk|pk|rk)_live_[A-Za-z0-9]{10,}/g;
     const isPlaceholder = (hit: string) => /^sk-(x+|test-[x-]+|your[-_a-z]*|\.{3}|…)/i.test(hit) || /^sk-[x.-]+$/i.test(hit);
     const findings: string[] = [];
     for (const file of trackedFiles) {
-      if (/lock/i.test(file) || patternDocs.has(file)) continue;
+      if (/lock/i.test(file)) continue;
       if (/\.(png|ico|zip|pptx|jpg|jpeg|gif|woff2?)$/i.test(file)) continue;
       if (!existsSync(file)) continue;
       const hits = readFileSync(file, 'utf8').match(pattern) ?? [];
       for (const hit of hits) if (!isPlaceholder(hit)) findings.push(`${file}: ${hit.slice(0, 12)}…`);
     }
     expect(findings).toEqual([]);
+  });
+
+  describe('AC-010: scripts/check-credentials.sh 無法用同一行的佔位字串繞過，也不把 key 印進 log', () => {
+    // 假 key 在執行時才組出來，repo 內不會出現完整的 key 字串。
+    const fakeRealKey = ['sk', 'proj', 'Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z'].join('-');
+    const script = join(process.cwd(), 'scripts/check-credentials.sh');
+
+    function scanRepo(content: string): { code: number; out: string } {
+      const dir = mkdtempSync(join(tmpdir(), 'cred-scan-'));
+      try {
+        execFileSync('git', ['init', '-q'], { cwd: dir });
+        writeFileSync(join(dir, 'config.ts'), content);
+        execFileSync('git', ['add', '.'], { cwd: dir });
+        try {
+          const out = execFileSync('bash', [script], { cwd: dir, encoding: 'utf8' });
+          return { code: 0, out };
+        } catch (err: any) {
+          return { code: err.status ?? 1, out: String(err.stdout ?? '') };
+        }
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    }
+
+    it('AC-010: 同一行同時有佔位字串與真實樣式 → 失敗，且輸出只有遮罩後的前綴', () => {
+      const r = scanRepo(`const KEY = 'sk-xxxx'; const real = '${fakeRealKey}';\n`);
+      expect(r.code).toBe(1);
+      expect(r.out).toContain('config.ts:1');
+      expect(r.out).not.toContain(fakeRealKey);
+      expect(r.out).not.toContain(fakeRealKey.slice(0, 12));
+    });
+
+    it('AC-010: 只有佔位字串 → 通過', () => {
+      const r = scanRepo(`const KEY = 'sk-xxxx'; const other = 'sk-test-xxxxxxxxxxxxxxxxxxxxxxxx';\n`);
+      expect(r.code).toBe(0);
+    });
+
+    it('AC-010: CI 以 --history 掃描所有 commit', () => {
+      expect(readFileSync('.github/workflows/ci.yml', 'utf8')).toContain('bash scripts/check-credentials.sh --history');
+    });
   });
 
   it('AC-010: 沒有提交 .env 檔（佔位用的 .env.local.example 除外）', () => {

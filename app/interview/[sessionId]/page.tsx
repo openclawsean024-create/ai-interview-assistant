@@ -49,9 +49,15 @@ export default function InterviewSessionPage({ params }: { params: { sessionId: 
   const [degradedReason, setDegradedReason] = useState<string | null>(null);
 
   useEffect(() => {
-    setSession(loadSession(sessionId));
+    const stored = loadSession(sessionId);
+    // 已結束的場次：直接導向報告，不再顯示作答與「結束」按鈕。
+    if (stored?.reportId) {
+      router.replace(`/report/${stored.reportId}`);
+      return;
+    }
+    setSession(stored);
     setLoaded(true);
-  }, [sessionId]);
+  }, [sessionId, router]);
 
   function persist(next: PracticeSession) {
     setSession(next);
@@ -150,6 +156,12 @@ export default function InterviewSessionPage({ params }: { params: { sessionId: 
 
   async function endInterview() {
     if (!session || isEnding || session.answers.length === 0) return;
+    // 以 localStorage 的最新狀態為準：另一個分頁已結束這場時，不再產生第二份報告。
+    const latest = loadSession(sessionId);
+    if (latest?.reportId) {
+      router.replace(`/report/${latest.reportId}`);
+      return;
+    }
     setIsEnding(true);
     setError('');
     try {
@@ -184,6 +196,7 @@ export default function InterviewSessionPage({ params }: { params: { sessionId: 
         createdAt: new Date().toISOString(),
       };
       saveReport(report);
+      saveSession({ ...session, reportId: report.reportId });
 
       // 完成一次練習就計一次免費額度（僅計數與提示，不阻擋使用）。
       const quota = incrementQuota();

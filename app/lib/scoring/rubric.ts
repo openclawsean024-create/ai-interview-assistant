@@ -8,7 +8,7 @@
 // 3. evidence（可觀察的證據）與 suggestions（建議）分開輸出。
 // 4. 這是關鍵詞／格式規則，不是語意理解；不做錄取預測或人格評斷。
 
-export const RUBRIC_VERSION = '1.0.0';
+export const RUBRIC_VERSION = '1.1.0';
 
 export type DimensionKey = 'structure' | 'depth' | 'relevance' | 'clarity' | 'confidence';
 
@@ -101,7 +101,7 @@ export const LENGTH_BAND_LABELS: Record<LengthBand, string> = {
 };
 
 export interface Observation {
-  /** 長度單位：中日韓字元數 + 英文／數字詞數 × 2 */
+  /** 長度單位：中日韓字元數（含假名、韓文）+ 英文／數字詞數 × 2 */
   lengthUnits: number;
   lengthBand: LengthBand;
   /** 每個 STAR 要素第一個命中的關鍵詞；未命中為 null */
@@ -133,13 +133,14 @@ export interface RubricResult {
 export const OWN_WORDS_REMINDER = '請用自己的話、依自己的真實經驗作答；不要填入沒有發生過的內容。';
 export const EMPTY_ANSWER_FEEDBACK = '未填寫回答。請用自己的話描述一個真實經驗。';
 
-const CJK_RE = /[㐀-鿿豈-﫿]/g;
+// 中日韓字元：漢字、日文假名、韓文（每字算 1 個長度單位）。
+const CJK_RE = /[\u3040-\u30ff\u3130-\u318f\u3400-\u9fff\uac00-\ud7af\uf900-\ufaff]/g;
 const LATIN_WORD_RE = /[A-Za-z0-9]+(?:[.'’-][A-Za-z0-9]+)*/g;
 
 const ARABIC_NUMBER_RE =
-  /\d+(?:[.,]\d+)*\s*(?:%|％|個百分點|倍|個月|小時|分鐘|毫秒|人|位|名|天|日|週|周|月|年|秒|萬|億|千|元|塊|次|件|筆|個|項|(?:percent|people|users|customers|days?|weeks?|months?|years?|hours?|minutes?|seconds?|ms|k|x)\b)?/gi;
+  /(?<![第\d.,])\d+(?:[.,]\d+)*\s*(?:%|％|個百分點|倍|個月|小時|分鐘|毫秒|人|位|名|天|日|週|周|月|年|秒|萬|億|千|元|塊|次|件|筆|個|項|(?:percent|people|users|customers|days?|weeks?|months?|years?|hours?|minutes?|seconds?|ms|k|x)\b)?/gi;
 const CJK_NUMBER_RE =
-  /[兩二三四五六七八九十百千萬][一二三四五六七八九十百千萬]*\s*(?:個百分點|成|倍|個月|小時|週|周|天|年|人|位|萬|億)/g;
+  /(?<![第兩二三四五六七八九十百千萬])[兩二三四五六七八九十百千萬][一二三四五六七八九十百千萬]*\s*(?:個百分點|成|倍|個月|小時|週|周|天|年|人|位|萬|億)/g;
 
 export function measureLength(text: string): number {
   const cjk = (text.match(CJK_RE) ?? []).length;
@@ -160,21 +161,60 @@ function unique(values: string[]): string[] {
   return Array.from(new Set(values));
 }
 
+/** 前面接這些字時詞義相反，不算命中（例如「不可能」不是不確定語氣「可能」）。 */
+const NEGATED_PREFIX: Record<string, string> = { 可能: '不' };
+
+const matcherCache = new Map<string, RegExp>();
+
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * 關鍵詞是否出現在（已轉小寫的）文字中。
+ * - 英文／數字開頭的詞：整詞比對（前後不能接英文字母或數字），避免 handled 命中 led、sometimes 命中 time。
+ * - 中文詞：子字串比對；NEGATED_PREFIX 列出的否定前綴不算命中。
+ */
+export function containsTerm(haystack: string, term: string): boolean {
+  let re = matcherCache.get(term);
+  if (!re) {
+    const escaped = escapeRegExp(term);
+    if (/^[a-z0-9]/.test(term)) {
+      re = new RegExp(`(?<![a-z0-9])${escaped}(?![a-z0-9])`);
+    } else if (NEGATED_PREFIX[term]) {
+      re = new RegExp(`(?<!${escapeRegExp(NEGATED_PREFIX[term])})${escaped}`);
+    } else {
+      re = new RegExp(escaped);
+    }
+    matcherCache.set(term, re);
+  }
+  return re.test(haystack);
+}
+
 function findFirst(haystack: string, lexicon: string[]): string | null {
   for (const word of lexicon) {
-    if (haystack.includes(word)) return word;
+    if (containsTerm(haystack, word)) return word;
   }
   return null;
 }
 
 function findAll(haystack: string, lexicon: string[]): string[] {
-  return lexicon.filter((word) => haystack.includes(word));
+  return lexicon.filter((word) => containsTerm(haystack, word));
 }
 
 export function detectNumbers(text: string): string[] {
   const arabic = (text.match(ARABIC_NUMBER_RE) ?? []).map((s) => s.replace(/\s+/g, ' ').trim());
   const cjk = (text.match(CJK_NUMBER_RE) ?? []).map((s) => s.replace(/\s+/g, '').trim());
-  return unique([...arabic, ...cjk].filter((s) => s.length > 0));
+  // 去重時忽略數字與單位之間的空白：「30 %」與「30%」算同一個數字（保留第一次出現的寫法）。
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const value of [...arabic, ...cjk]) {
+    const key = value.replace(/\s+/g, '');
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    result.push(value);
+  }
+  return result;
 }
 
 /** 從題目取出關鍵詞：中文取相鄰二字、英文取單字，並剔除常見題幹用語。 */
@@ -203,6 +243,10 @@ export function observe(answer: string, questionText = ''): Observation {
   const text = (answer ?? '').trim();
   const lower = text.toLowerCase();
   const lengthUnits = measureLength(text);
+  // 空白的定義（RUBRIC §3）：去除空白字元後長度為 0。
+  // 有內容但沒有可計數的字元（例如只有標點或表情符號）不算空白，歸為極短。
+  const blank = text.replace(/\s+/g, '').length === 0;
+  const lengthBand: LengthBand = blank ? 'empty' : lengthUnits === 0 ? 'very-short' : lengthBandOf(lengthUnits);
 
   const star: Record<StarKey, string | null> = {
     situation: findFirst(lower, STAR_LEXICON.situation),
@@ -214,11 +258,11 @@ export function observe(answer: string, questionText = ''): Observation {
 
   const keywords = extractQuestionKeywords(questionText ?? '');
   const keywordOverlap =
-    keywords.length === 0 ? null : keywords.filter((k) => lower.includes(k)).length / keywords.length;
+    keywords.length === 0 ? null : keywords.filter((k) => containsTerm(lower, k)).length / keywords.length;
 
   return {
     lengthUnits,
-    lengthBand: lengthBandOf(lengthUnits),
+    lengthBand,
     star,
     starCount,
     numbers: detectNumbers(text),
@@ -401,8 +445,14 @@ export interface ReportSummary {
 
 const DIMENSION_ORDER: DimensionKey[] = ['structure', 'depth', 'relevance', 'clarity', 'confidence'];
 
-/** 依逐題 rubric 結果彙整整場報告（同樣是純函式）。 */
-export function summarizeAnswers(answers: Array<{ answerText: string; questionText?: string }>): ReportSummary {
+/**
+ * 依逐題 rubric 結果彙整整場報告（同樣是純函式）。
+ * 每題都有提供 score 時（例如自備 key 模式由 AI 給的逐題分數），平均分以提供的分數計算，
+ * 讓報告開頭的總分與摘要中的平均分永遠一致；雷達圖與優缺點仍依 rubric 觀察結果。
+ */
+export function summarizeAnswers(
+  answers: Array<{ answerText: string; questionText?: string; score?: number }>,
+): ReportSummary {
   const results = answers.map((a) => scoreAnswer({ answer: a.answerText ?? '', questionText: a.questionText ?? '' }));
   const n = results.length;
   if (n === 0) {
@@ -423,7 +473,10 @@ export function summarizeAnswers(answers: Array<{ answerText: string; questionTe
     clarity: avg((r) => r.dimensions.clarity),
     confidence: avg((r) => r.dimensions.confidence),
   };
-  const overall = avg((r) => r.score);
+  const provided = answers.map((a) => a.score);
+  const overall = provided.every((v): v is number => typeof v === 'number' && Number.isFinite(v))
+    ? Math.round(provided.reduce((sum, v) => sum + Math.max(0, Math.min(100, v)), 0) / n)
+    : avg((r) => r.score);
 
   const count = (pred: (o: Observation) => boolean) => results.filter((r) => pred(r.observation)).length;
   const blank = count((o) => o.lengthBand === 'empty');
@@ -450,7 +503,7 @@ export function summarizeAnswers(answers: Array<{ answerText: string; questionTe
   const strongest = ranked[0];
   const weakest = ranked[ranked.length - 1];
   const summary =
-    `共作答 ${n} 題，平均 ${overall} 分（依 rubric v${RUBRIC_VERSION} 的關鍵詞與格式規則自動評分，非真人或 AI 語意評審）。` +
+    `共作答 ${n} 題，逐題平均 ${overall} 分。雷達圖依 rubric v${RUBRIC_VERSION} 的關鍵詞與格式規則計算（非真人或 AI 語意評審）。` +
     (radarData[strongest] === radarData[weakest]
       ? '各維度分數相同。'
       : `分數最高的維度是「${DIMENSION_LABELS[strongest]}」（${radarData[strongest]}），最低的是「${DIMENSION_LABELS[weakest]}」（${radarData[weakest]}）。`);

@@ -6,6 +6,7 @@ import { POST as endPOST } from '@/app/api/interview/end/route';
 import { existsSync } from 'node:fs';
 import { POST as testKeyPOST } from '@/app/api/test-key/route';
 import { serverCooldown } from '@/app/lib/llm/router';
+import { resetRateLimits } from '@/app/lib/security/rate-limit';
 import { getJobQuestions } from '@/app/lib/questions/bank';
 import { EMPTY_ANSWER_FEEDBACK, scoreAnswer } from '@/app/lib/scoring/rubric';
 import { MAX_ANSWER_CHARS, TOTAL_QUESTIONS } from '@/app/lib/practice/constants';
@@ -26,6 +27,7 @@ const byokHeaders = { 'x-api-key': FAKE_API_KEY };
 
 beforeEach(() => {
   serverCooldown.reset();
+  resetRateLimits();
 });
 
 // 每個測試結束時確認：沒有任何請求漏到守門 fetch（＝零真實網路嘗試）。

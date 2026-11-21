@@ -166,6 +166,36 @@ test.describe('AC-006 無 key、無登入的 UI 練習閉環', () => {
   });
 });
 
+test.describe('AC-006 已結束的場次不能再結束一次', () => {
+  test('AC-006: 產生報告後回到作答頁 → 直接導向同一份報告；不會產生第二份報告、不重複計額度', async ({ page, context }) => {
+    const network = await trackNetwork(context);
+    await page.goto('/interview');
+    await acceptConsent(page);
+    await page.getByTestId('start-mock-interview').click();
+    await page.waitForURL(/\/interview\/[0-9a-f-]{36}\/?$/);
+    const sessionUrl = new URL(page.url()).pathname;
+
+    await page.getByTestId('answer-input').fill(E2E_ANSWERS[0]);
+    await page.getByTestId('submit-answer').click();
+    await expect(page.getByTestId('feedback-panel')).toBeVisible();
+    await page.getByTestId('end-early-btn').click();
+    await page.waitForURL(/\/report\/[0-9a-f-]{36}\/?$/);
+    const reportUrl = new URL(page.url()).pathname;
+
+    // 回到作答頁：直接導向同一份報告，看不到「結束」按鈕
+    await page.goto(sessionUrl);
+    await page.waitForURL((url) => url.pathname === reportUrl);
+    await expect(page.getByTestId('report-overall-score')).toBeVisible();
+
+    const storage = await readLocalStorage(page);
+    expect(Object.keys(storage).filter((k) => k.startsWith('aiia.report.'))).toHaveLength(1);
+    expect(JSON.parse(storage['aiia.practice.history'])).toHaveLength(1);
+    expect(JSON.parse(storage['aiia.session.quota']).used).toBe(1);
+    expect(network.local.filter((p) => p.startsWith('/api/interview/end')).length).toBe(1);
+    expect(network.external).toEqual([]);
+  });
+});
+
 test.describe('AC-004 題庫篩選（單一題庫）', () => {
   test('AC-004: 題庫可依題型、語言、職務、職級篩選，且只顯示提示、不產生答案', async ({ page, context }) => {
     const network = await trackNetwork(context);

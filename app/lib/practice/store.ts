@@ -35,6 +35,8 @@ export interface PracticeSession {
   /** 已評分、但使用者還沒按「下一題」時暫存的下一題 */
   pendingNext: PracticeQuestion | null;
   startedAt: string;
+  /** 已產生報告時的報告 id；有值代表這場已結束，不能再結束一次（避免重複報告與重複計額度）。 */
+  reportId?: string;
 }
 
 export interface PracticeReport {

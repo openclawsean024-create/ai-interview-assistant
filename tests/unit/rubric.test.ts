@@ -258,3 +258,52 @@ describe('AC-005 整場報告彙整', () => {
     expect(md).toContain('## 5 維度');
   });
 });
+
+describe('AC-005 rubric v1.1.0 審查修正', () => {
+  it('AC-005: 空白只依「去除空白字元後長度為 0」判定；日文、韓文、只有標點或表情符號都不是空白', () => {
+    for (const answer of ['これはテストです', '저는 팀을 이끌었습니다', '???', '🙂🙂']) {
+      const r = scoreAnswer({ answer, questionText: '請分享一次團隊合作經驗' });
+      expect(r.observation.lengthBand, answer).not.toBe('empty');
+      expect(r.evidence, answer).not.toContain('回答為空白（0 字）。');
+      expect(r.feedback, answer).not.toBe(EMPTY_ANSWER_FEEDBACK);
+    }
+    for (const blank of ['', '   ', '\n\t　']) {
+      const r = scoreAnswer({ answer: blank });
+      expect(r.observation.lengthBand).toBe('empty');
+      expect(r.score).toBe(0);
+    }
+  });
+
+  it('AC-005: 日文假名與韓文每字算 1 個長度單位', () => {
+    expect(measureLength('これはテスト')).toBe(6);
+    expect(measureLength('팀장')).toBe(2);
+  });
+
+  it('AC-005: 英文關鍵詞整詞比對（When it rained 不算情境、handled 不算 led）', () => {
+    expect(observe('When it rained, nothing happened.').star.situation).toBeNull();
+    expect(observe('When I joined the team, I led the release.').star.situation).toBe('when i');
+    expect(observe('I handled things sometimes.', 'Tell me about a time you led a team').keywordOverlap).toBe(0);
+    expect(observe('I led the team for a long time.', 'Tell me about a time you led a team').keywordOverlap).toBe(1);
+  });
+
+  it('AC-005: 「不可能」不算不確定語氣，「可能」仍算', () => {
+    expect(observe('這個方案不可能失敗。').hedges).toEqual([]);
+    expect(observe('這個方案可能會失敗。').hedges).toEqual(['可能']);
+  });
+
+  it('AC-005: 數字去重忽略空白（30 % 與 30% 算同一個），「第」開頭的序數不算', () => {
+    expect(detectNumbers('提升 30 %，後來又維持 30%')).toEqual(['30 %']);
+    expect(detectNumbers('第二天我就上線了')).toEqual([]);
+    expect(detectNumbers('第3天完成')).toEqual([]);
+    expect(detectNumbers('花了兩天、3天完成')).toEqual(['3天', '兩天']);
+  });
+
+  it('AC-005: 每題都有分數時，整場平均以逐題分數計算，摘要中的平均分與總分一致', () => {
+    const report = summarizeAnswers([
+      { answerText: FIXTURES.fullStar, questionText: 'q', score: 72 },
+      { answerText: '', questionText: 'q', score: 0 },
+    ]);
+    expect(report.overallScore).toBe(36);
+    expect(report.summary).toContain('逐題平均 36 分');
+  });
+});

@@ -7,6 +7,10 @@
 //   - 同一把 key 連續 3 次請求最終都失敗（已含重試）→ 30 分鐘內直接走 Mock，不再呼叫外部供應商，
 //     回應標示 degraded: true、degradedReason: 'cooldown_active'。
 //   - 任何一次成功都會把連續失敗次數歸零。
+//   - 一個請求內若有多次 AI 呼叫（例如 /answer 先評分再出題），第一次降級後其餘呼叫直接降級，
+//     整個請求只記一次失敗。
+//   - 每個請求有整體期限 REQUEST_DEADLINE_MS；超過後不再呼叫外部供應商。
+//   - 冷卻表最多 MAX_COOLDOWN_ENTRIES 筆，超過時先清過期與最舊項目。
 //   - 限制：狀態存在單一 server process 的記憶體；serverless 多 instance 之間不共享、重啟後歸零。
 
 import { createHash } from 'crypto';
@@ -18,6 +22,9 @@ import { LlmAuthError, LlmHttpError } from './errors';
 export const MAX_RETRIES = 1;
 export const COOLDOWN_FAILURE_THRESHOLD = 3;
 export const COOLDOWN_MS = 30 * 60 * 1000;
+/** 單一 HTTP 請求呼叫外部供應商的整體期限（含重試）。 */
+export const REQUEST_DEADLINE_MS = 45_000;
+export const MAX_COOLDOWN_ENTRIES = 5000;
 const RETRIABLE_STATUS = new Set([429, 500, 502, 503, 504]);
 
 export interface CooldownStore {
@@ -25,13 +32,27 @@ export interface CooldownStore {
   recordFailure(key: string, now: number): void;
   recordSuccess(key: string): void;
   reset(): void;
+  size(): number;
 }
 
 export function createCooldownStore(
   threshold = COOLDOWN_FAILURE_THRESHOLD,
   cooldownMs = COOLDOWN_MS,
+  maxEntries = MAX_COOLDOWN_ENTRIES,
 ): CooldownStore {
-  const state = new Map<string, { failures: number; until: number }>();
+  const state = new Map<string, { failures: number; until: number; lastAt: number }>();
+  function prune(now: number) {
+    if (state.size < maxEntries) return;
+    for (const [k, e] of Array.from(state.entries())) {
+      const expired = e.until !== 0 ? e.until <= now : e.lastAt + cooldownMs <= now;
+      if (expired) state.delete(k);
+    }
+    while (state.size >= maxEntries) {
+      const oldest = state.keys().next().value;
+      if (oldest === undefined) break;
+      state.delete(oldest);
+    }
+  }
   return {
     isActive(key, now) {
       const entry = state.get(key);
@@ -41,8 +62,13 @@ export function createCooldownStore(
       return false;
     },
     recordFailure(key, now) {
-      const entry = state.get(key) ?? { failures: 0, until: 0 };
+      let entry = state.get(key);
+      if (!entry) {
+        prune(now);
+        entry = { failures: 0, until: 0, lastAt: now };
+      }
       entry.failures += 1;
+      entry.lastAt = now;
       if (entry.failures >= threshold) entry.until = now + cooldownMs;
       state.set(key, entry);
     },
@@ -51,6 +77,9 @@ export function createCooldownStore(
     },
     reset() {
       state.clear();
+    },
+    size() {
+      return state.size;
     },
   };
 }
@@ -69,9 +98,14 @@ export interface RouterDeps {
   now?: () => number;
 }
 
-export function buildCtx(opts: { apiKey?: string | null }): LlmContext {
+export function buildCtx(opts: { apiKey?: string | null; now?: number }): LlmContext {
   const apiKey = opts.apiKey?.trim() || undefined;
-  return { mode: apiKey ? 'byok' : 'mock', apiKey, retryCount: 0 };
+  return {
+    mode: apiKey ? 'byok' : 'mock',
+    apiKey,
+    retryCount: 0,
+    deadline: (opts.now ?? Date.now()) + REQUEST_DEADLINE_MS,
+  };
 }
 
 /** 單一工廠：依 ctx 選擇 provider。沒有 key 一律 Mock。 */
@@ -111,9 +145,13 @@ export async function safeCall<T extends ProviderMeta>(
   }
 
   const degrade = async (degradedReason: string): Promise<T> => {
+    ctx.requestDegradedReason = degradedReason;
     const fallback = await fn(mock);
     return { ...fallback, mode: 'mock', degraded: true, degradedReason, fallbackMode: 'mock' };
   };
+
+  // 同一請求內前面的呼叫已降級：直接降級，不再呼叫外部、不重複記失敗。
+  if (ctx.requestDegradedReason) return degrade(ctx.requestDegradedReason);
 
   const key = fingerprintKey(ctx.apiKey);
   if (cooldown.isActive(key, now())) return degrade('cooldown_active');
@@ -121,6 +159,10 @@ export async function safeCall<T extends ProviderMeta>(
   const provider = resolveProvider(ctx, deps);
   let lastError: unknown;
   for (let attempt = ctx.retryCount; attempt <= MAX_RETRIES; attempt++) {
+    if (ctx.deadline !== undefined && now() >= ctx.deadline) {
+      lastError = lastError ?? new LlmHttpError('timeout');
+      break;
+    }
     try {
       const result = await fn(provider);
       cooldown.recordSuccess(key);

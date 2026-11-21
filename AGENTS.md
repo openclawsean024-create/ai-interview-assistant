@@ -44,7 +44,7 @@ PRD/SPEC.md  PRD/RUBRIC.md  PRD/CHANGELOG.md
 - 資料：瀏覽器 localStorage；無資料庫。
 - AI：`app/lib/llm/` 自訂 `LlmProvider`；Mock 為預設，BYOK 以 `fetch` 呼叫 OpenAI Chat Completions。`openai`、`@clerk/nextjs` 套件已安裝但主要流程未使用。
 - 測試：Vitest 2（單元／契約）、Playwright（E2E，Chromium）。CI：`.github/workflows/ci.yml`。
-- 部署：Vercel（`vercel.json`）、GitHub Pages workflow（`.github/workflows/deploy.yml`，目前持續失敗）。
+- 部署：Vercel（`vercel.json`）、GitHub Pages workflow（`.github/workflows/deploy.yml`，只能手動觸發；靜態匯出不含 API routes，先前持續失敗）。
 - 套件管理：`package-lock.json` 與 `pnpm-lock.yaml` 並存，以 npm 為準（`vercel.json`、CI 皆用 npm），政策待確認。
 
 ## 4. 開發規則

@@ -13,12 +13,12 @@ export const CONSENT_POINTS = {
   zh: [
     'Mock 模式（預設）：練習資料只存在本機瀏覽器（localStorage）；作答內容會送到本站伺服器即時評分，但不會轉送給任何 AI 供應商。',
     '若使用自備 API key：題目、回答與 key 會經本站伺服器轉送給 AI 供應商（OpenAI）。',
-    '本站不會在伺服器保存回答；你可以隨時到設定頁一鍵刪除本機資料。',
+    '本站不會在伺服器保存回答；為了限流，伺服器記憶體會暫存 API key 的雜湊指紋與請求次數最多 30 分鐘。你可以隨時到設定頁一鍵刪除本機資料。',
   ],
   en: [
     'Mock mode (default): practice data is stored only in this browser (localStorage). Your answers are sent to this site\'s server for instant scoring, but are not forwarded to any AI provider.',
     'If you use your own API key: questions, answers and the key are relayed through this site\'s server to the AI provider (OpenAI).',
-    'This site does not store your answers on the server. You can delete all local data at any time in Settings.',
+    'This site does not store your answers on the server. For rate limiting, the server keeps a hashed fingerprint of your API key and request counts in memory for up to 30 minutes. You can delete all local data at any time in Settings.',
   ],
 } as const;
 

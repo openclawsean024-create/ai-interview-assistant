@@ -5,16 +5,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { buildCtx, safeCall } from '@/app/lib/llm/router';
 import { errorResponse } from '@/app/lib/llm/http-errors';
-import { DEFAULT_JOB_LEVEL, DEFAULT_JOB_TYPE, TOTAL_QUESTIONS } from '@/app/lib/practice/constants';
+import { TOTAL_QUESTIONS } from '@/app/lib/practice/constants';
+import { readJobLevel, readJobType } from '@/app/lib/practice/request-validation';
+import { checkRateLimit } from '@/app/lib/security/rate-limit';
 
 export const runtime = 'nodejs';
 
 export async function POST(req: NextRequest) {
   try {
+    const limited = checkRateLimit(req, { kind: 'api', usesKey: Boolean(req.headers.get('x-api-key')) });
+    if (limited) return limited;
     const body = await req.json().catch(() => ({}));
-    const jobType = typeof body?.jobType === 'string' ? body.jobType : DEFAULT_JOB_TYPE;
-    const jobLevel = typeof body?.jobLevel === 'string' ? body.jobLevel : DEFAULT_JOB_LEVEL;
-    const interviewType = typeof body?.interviewType === 'string' ? body.interviewType : 'behavioral';
+    const jobType = readJobType(body?.jobType);
+    const jobLevel = readJobLevel(body?.jobLevel);
+    const interviewType = body?.interviewType === 'technical' ? 'technical' : 'behavioral';
 
     const ctx = buildCtx({ apiKey: req.headers.get('x-api-key') });
     const firstQ = await safeCall(ctx, (p) => p.generateQuestion(ctx, { jobType, jobLevel, askedQuestions: [] }));
@@ -34,6 +38,6 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error) {
-    return errorResponse(error);
+    return errorResponse(error, req);
   }
 }

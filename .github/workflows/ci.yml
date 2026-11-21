@@ -65,7 +65,7 @@ jobs:
           fi
 
       - name: Credential scan (AC-010)
-        run: bash scripts/check-credentials.sh
+        run: bash scripts/check-credentials.sh --history
 
       - name: Whitespace check (AC-010)
         run: git diff --check origin/master...HEAD
